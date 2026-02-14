@@ -3,7 +3,9 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface ICompany extends Document {
   name: string;
   domain: string;
-  plan: 'free' | 'starter' | 'business' | 'enterprise';
+  plan_id: mongoose.Types.ObjectId;
+  country: string;
+  mrr: number;
   settings: {
     screenshot_interval: number;
     idle_threshold: number;
@@ -27,7 +29,7 @@ export interface ICompany extends Document {
     current_period_end?: Date;
     cancel_at_period_end: boolean;
   };
-  max_users: number;
+  max_users: number; // Keep this as override or cache from plan
   created_at: Date;
   updated_at: Date;
 }
@@ -35,7 +37,9 @@ export interface ICompany extends Document {
 const CompanySchema = new Schema<ICompany>({
   name: { type: String, required: true, trim: true },
   domain: { type: String, required: true, unique: true, lowercase: true },
-  plan: { type: String, enum: ['free', 'starter', 'business', 'enterprise'], default: 'free' },
+  plan_id: { type: Schema.Types.ObjectId, ref: 'Plan' },
+  country: { type: String, default: 'US' },
+  mrr: { type: Number, default: 0 },
   settings: {
     screenshot_interval: { type: Number, default: 300 },
     idle_threshold: { type: Number, default: 300 },

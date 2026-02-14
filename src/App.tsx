@@ -52,50 +52,63 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-          <AuthProvider>
-      <PlatformProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            {/* Public */}
-            <Route path="/" element={<Index />} />
-            <Route path="/pricing" element={<Pricing />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/admin/login" element={<CompanyAdminLogin />} />
-            <Route path="/super/admin/login" element={<SuperAdminLogin />} />
-            <Route path="/invite/:token" element={<AcceptInvite />} />
-            <Route path="/onboarding" element={<Onboarding />} />
-            <Route path="/download" element={<Download />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/features/time-tracker" element={<TimeTracker />} />
-            <Route path="/features/team-management" element={<TeamManagementFeature />} />
-            <Route path="/features/screenshot-monitoring" element={<ScreenshotMonitoring />} />
-            <Route path="/features/url-tracking" element={<UrlTracking />} />
-            <Route path="/solutions/workforce-analytics" element={<WorkforceAnalytics />} />
-            <Route path="/solutions/productivity-analytics" element={<ProductivityAnalytics />} />
-            <Route path="/solutions/employee-monitoring" element={<EmployeeMonitoring />} />
-            <Route path="/solutions/time-reporting" element={<TimeReporting />} />
-            <Route path="/agent" element={<AgentPanel />} />
+      <AuthProvider>
+        <PlatformProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              {/* Public */}
+              <Route path="/" element={<Index />} />
+              <Route path="/pricing" element={<Pricing />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/admin/login" element={<CompanyAdminLogin />} />
+              <Route path="/super/admin/login" element={<SuperAdminLogin />} />
+              <Route path="/invite/:token" element={<AcceptInvite />} />
+              <Route path="/onboarding" element={<Onboarding />} />
+              <Route path="/download" element={<Download />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/features/time-tracker" element={<TimeTracker />} />
+              <Route path="/features/team-management" element={<TeamManagementFeature />} />
+              <Route path="/features/screenshot-monitoring" element={<ScreenshotMonitoring />} />
+              <Route path="/features/url-tracking" element={<UrlTracking />} />
+              <Route path="/solutions/workforce-analytics" element={<WorkforceAnalytics />} />
+              <Route path="/solutions/productivity-analytics" element={<ProductivityAnalytics />} />
+              <Route path="/solutions/employee-monitoring" element={<EmployeeMonitoring />} />
+              <Route path="/solutions/time-reporting" element={<TimeReporting />} />
+              <Route path="/agent" element={<AgentPanel />} />
 
 
 
-            <Route path="/team/:id" element={<UserDetails />} />
+              <Route path="/team/:id" element={<UserDetails />} />
 
 
 
-            {/* Company Dashboard */}
-            <Route path="/dashboard" element={<CompanyAdminAuthGuard><Dashboard /></CompanyAdminAuthGuard>} />
-            <Route path="/dashboard/*" element={<CompanyAdminAuthGuard><Dashboard /></CompanyAdminAuthGuard>} />
+              {/* Company Dashboard */}
+              <Route path="/dashboard" element={<CompanyAdminAuthGuard><Dashboard /></CompanyAdminAuthGuard>} />
+              <Route path="/dashboard/team" element={<CompanyAdminAuthGuard><TeamManagement /></CompanyAdminAuthGuard>} />
+              <Route path="/dashboard/attendance" element={<CompanyAdminAuthGuard><Attendance /></CompanyAdminAuthGuard>} />
+              <Route path="/dashboard/screenshots" element={<CompanyAdminAuthGuard><Screenshots /></CompanyAdminAuthGuard>} />
+              <Route path="/dashboard/time-logs" element={<CompanyAdminAuthGuard><TimeLogs /></CompanyAdminAuthGuard>} />
+              <Route path="/dashboard/app-usage" element={<CompanyAdminAuthGuard><AppUsage /></CompanyAdminAuthGuard>} />
+              <Route path="/dashboard/billing" element={<CompanyAdminAuthGuard><Billing /></CompanyAdminAuthGuard>} />
+              <Route path="/dashboard/reports" element={<CompanyAdminAuthGuard><Reports /></CompanyAdminAuthGuard>} />
+              <Route path="/dashboard/invite" element={<CompanyAdminAuthGuard><InviteMembers /></CompanyAdminAuthGuard>} />
+              <Route path="/dashboard/settings" element={<CompanyAdminAuthGuard><SettingsPage /></CompanyAdminAuthGuard>} />
+              <Route path="/dashboard/activity" element={<CompanyAdminAuthGuard><ActivityDashboard /></CompanyAdminAuthGuard>} />
+              <Route path="/dashboard/api-spec" element={<CompanyAdminAuthGuard><ApiSpecification /></CompanyAdminAuthGuard>} />
+              <Route path="/dashboard/notifications" element={<CompanyAdminAuthGuard><NotificationsPage /></CompanyAdminAuthGuard>} />
+              <Route path="/dashboard/restrictions" element={<CompanyAdminAuthGuard><AppRestrictions /></CompanyAdminAuthGuard>} />
+              <Route path="/dashboard/justifications" element={<CompanyAdminAuthGuard><IdleJustification /></CompanyAdminAuthGuard>} />
 
-            {/* Super Admin */}
-            <Route path="/super-admin" element={<SuperAdminAuthGuard><SuperAdmin /></SuperAdminAuthGuard>} />
-            <Route path="/super-admin/*" element={<SuperAdminAuthGuard><SuperAdmin /></SuperAdminAuthGuard>} />
+              {/* Super Admin */}
+              <Route path="/super-admin" element={<SuperAdminAuthGuard><SuperAdmin /></SuperAdminAuthGuard>} />
+              <Route path="/super-admin/*" element={<SuperAdminAuthGuard><SuperAdmin /></SuperAdminAuthGuard>} />
 
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </PlatformProvider>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </PlatformProvider>
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>

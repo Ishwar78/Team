@@ -15,7 +15,7 @@ const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.coerce.number().default(4000),
   MONGODB_URI: z.string().min(1),
- REDIS_URL: z.string().optional(),
+  REDIS_URL: z.string().optional(),
 
   JWT_PRIVATE_KEY: z.string().min(1),
   JWT_PUBLIC_KEY: z.string().min(1),
@@ -27,7 +27,7 @@ const envSchema = z.object({
   AWS_SECRET_ACCESS_KEY: z.string().min(1),
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
-  CORS_ORIGIN: z.string().default('http://localhost:8080,http://localhost:5173'),
+  CORS_ORIGIN: z.string().default('http://localhost:8080,http://localhost:5173,http://localhost:8081'),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().default(60_000),
   RATE_LIMIT_MAX: z.coerce.number().default(100),
 });

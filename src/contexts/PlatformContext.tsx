@@ -1,101 +1,206 @@
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import axios from "axios";
+import { useAuth } from "./AuthContext";
+
+// Configure axios base URL if not already configured globally
+const api = axios.create({
+  baseURL: "http://localhost:5000/api/super-admin", // centralized config
+});
 
 export interface Plan {
-  id: string;
+  _id: string; // MongoDB ID
+  id?: string; // Frontend compatibility (mapped from _id)
   name: string;
-  price: number;
-  users: number | string;
-  screenshots: string;
-  retention: string;
-  active: number;
+  price_monthly: number;
+  max_users: number;
+  screenshots_per_hour: number;
+  data_retention: string;
+  isActive: boolean;
   features?: string[];
+  active?: number; // count of companies
+
+  // Frontend legacy fields mapping
+  price?: number;
+  users?: number | string;
+  screenshots?: string;
+  retention?: string;
   popular?: boolean;
 }
 
 export interface Company {
-  id: number;
+  _id: string;
+  id?: string | number;
   name: string;
+  email: string;
   plan: string;
   users: number;
   maxUsers: number;
   status: "active" | "trial" | "suspended";
   mrr: number;
   joined: string;
-  email: string;
   country: string;
-  adminPassword?: string;
 }
 
-const DEFAULT_PLANS: Plan[] = [
-  { id: "free_trial", name: "Free Trial", price: 0, users: 5, screenshots: "12/hr", retention: "1 Month", active: 12, features: ["12 screenshots/hr", "Time tracking", "Basic reports", "1 month storage", "Email support"], popular: false },
-  { id: "starter", name: "Starter", price: 49, users: 10, screenshots: "12/hr", retention: "3 Months", active: 34, features: ["12 screenshots/hr", "Time tracking", "Full reports", "3 months storage", "URL tracking", "Priority support"], popular: false },
-  { id: "professional", name: "Professional", price: 99, users: 25, screenshots: "12/hr", retention: "3 Months", active: 52, features: ["12 screenshots/hr", "Time tracking", "Full reports", "3 months storage", "URL & app tracking", "Idle detection", "PDF/CSV export", "Sub-admin roles"], popular: true },
-  { id: "team", name: "Team", price: 199, users: 50, screenshots: "12/hr", retention: "6 Months", active: 24, features: ["12 screenshots/hr", "All Pro features", "3 months storage", "Advanced analytics", "API access", "Dedicated support"], popular: false },
-  { id: "enterprise", name: "Enterprise", price: 499, users: 200, screenshots: "Custom", retention: "1 Year", active: 5, features: ["Custom screenshot rate", "Unlimited storage", "All features", "On-premise option", "SLA guarantee", "Account manager"], popular: false },
-];
-
-const DEFAULT_COMPANIES: Company[] = [
-  { id: 1, name: "Acme Corp", plan: "Professional", users: 18, maxUsers: 25, status: "active", mrr: 99, joined: "2025-11-12", email: "admin@acme.com", country: "US" },
-  { id: 2, name: "TechFlow Inc", plan: "Team", users: 42, maxUsers: 50, status: "active", mrr: 199, joined: "2025-09-05", email: "ceo@techflow.io", country: "UK" },
-  { id: 3, name: "StartupXYZ", plan: "Starter", users: 8, maxUsers: 10, status: "active", mrr: 49, joined: "2026-01-20", email: "hello@startupxyz.com", country: "IN" },
-  { id: 4, name: "BigCo Ltd", plan: "Enterprise", users: 156, maxUsers: 200, status: "active", mrr: 499, joined: "2025-06-14", email: "ops@bigco.com", country: "DE" },
-  { id: 5, name: "FreeTest", plan: "Free Trial", users: 3, maxUsers: 5, status: "trial", mrr: 0, joined: "2026-02-01", email: "test@free.com", country: "US" },
-  { id: 6, name: "OldCompany", plan: "Starter", users: 5, maxUsers: 10, status: "suspended", mrr: 0, joined: "2025-03-10", email: "old@company.com", country: "CA" },
-  { id: 7, name: "DesignHub", plan: "Professional", users: 22, maxUsers: 25, status: "active", mrr: 99, joined: "2025-08-22", email: "team@designhub.co", country: "AU" },
-  { id: 8, name: "DevShop", plan: "Team", users: 38, maxUsers: 50, status: "active", mrr: 199, joined: "2025-10-01", email: "hello@devshop.dev", country: "US" },
-];
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  company: string;
+  role: string;
+  status: string;
+  lastSeen: string;
+}
 
 interface PlatformContextValue {
   plans: Plan[];
   companies: Company[];
-  addPlan: (plan: Omit<Plan, "id" | "active">) => void;
-  updatePlan: (id: string, updates: Partial<Plan>) => void;
-  deletePlan: (id: string) => void;
-  addCompany: (company: Omit<Company, "id" | "users" | "joined">) => void;
-  updateCompany: (id: number, updates: Partial<Company>) => void;
-  suspendCompany: (id: number) => void;
-  activateCompany: (id: number) => void;
+  users: User[];
+  loading: boolean;
+  refreshData: () => void;
+
+  addPlan: (plan: any) => Promise<void>;
+  updatePlan: (id: string, updates: any) => Promise<void>;
+  deletePlan: (id: string) => Promise<void>;
+
+  addCompany: (company: any) => Promise<void>;
+  updateCompany: (id: string, updates: any) => Promise<void>;
+  suspendCompany: (id: string) => Promise<void>;
+  activateCompany: (id: string) => Promise<void>;
 }
 
 const PlatformContext = createContext<PlatformContextValue | null>(null);
 
 export const PlatformProvider = ({ children }: { children: ReactNode }) => {
-  const [plans, setPlans] = useState<Plan[]>(DEFAULT_PLANS);
-  const [companies, setCompanies] = useState<Company[]>(DEFAULT_COMPANIES);
+  const { token } = useAuth(); // Assuming AuthContext provides token
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const addPlan = (plan: Omit<Plan, "id" | "active">) => {
-    const id = plan.name.toLowerCase().replace(/\s+/g, "_");
-    setPlans(prev => [...prev, { ...plan, id, active: 0 }]);
+  // Set auth header
+  useEffect(() => {
+    if (token) {
+      api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    }
+  }, [token]);
+
+  const fetchData = async () => {
+    if (!token) return;
+    setLoading(true);
+    try {
+      const [plansRes, companiesRes, usersRes] = await Promise.all([
+        api.get("/plans"),
+        api.get("/companies"),
+        api.get("/users")
+      ]);
+
+      if (plansRes.data.success) {
+        // Map backend Plan to frontend interface
+        const mappedPlans = plansRes.data.data.map((p: any) => ({
+          ...p,
+          id: p._id,
+          price: p.price_monthly,
+          users: p.max_users,
+          screenshots: `${p.screenshots_per_hour}/hr`,
+          retention: p.data_retention
+        }));
+        setPlans(mappedPlans);
+      }
+
+      if (companiesRes.data.success) {
+        // Map backend Company to frontend interface
+        const mappedCompanies = companiesRes.data.data.map((c: any) => ({
+          ...c,
+          id: c.id, // backend sends .id as _id
+        }));
+        setCompanies(mappedCompanies);
+      }
+
+      if (usersRes.data.success) {
+        setUsers(usersRes.data.data);
+      }
+
+    } catch (error) {
+      console.error("Failed to fetch platform data", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const updatePlan = (id: string, updates: Partial<Plan>) => {
-    setPlans(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
+  useEffect(() => {
+    fetchData();
+  }, [token]);
+
+  const addPlan = async (planData: any) => {
+    // Map frontend form data to backend expected
+    const payload = {
+      name: planData.name,
+      price_monthly: planData.price,
+      max_users: Number(planData.users) || 5, // handle 'Custom' if needed
+      screenshots_per_hour: parseInt(planData.screenshots) || 12,
+      data_retention: planData.retention,
+      features: planData.features,
+      isActive: true
+    };
+    await api.post("/plans", payload);
+    fetchData();
   };
 
-  const deletePlan = (id: string) => {
-    setPlans(prev => prev.filter(p => p.id !== id));
+  const updatePlan = async (id: string, updates: any) => {
+    // Map updates if needed
+    const payload: any = {};
+    if (updates.name) payload.name = updates.name;
+    if (updates.price !== undefined) payload.price_monthly = updates.price;
+    if (updates.users) payload.max_users = Number(updates.users);
+    if (updates.screenshots) payload.screenshots_per_hour = parseInt(updates.screenshots);
+    if (updates.retention) payload.data_retention = updates.retention;
+    if (updates.features) payload.features = updates.features;
+
+    await api.put(`/plans/${id}`, payload);
+    fetchData();
   };
 
-  const addCompany = (company: Omit<Company, "id" | "users" | "joined">) => {
-    const newId = Math.max(...companies.map(c => c.id), 0) + 1;
-    const today = new Date().toISOString().split("T")[0];
-    setCompanies(prev => [...prev, { ...company, id: newId, users: 0, joined: today }]);
+  const deletePlan = async (id: string) => {
+    await api.delete(`/plans/${id}`);
+    fetchData();
   };
 
-  const updateCompany = (id: number, updates: Partial<Company>) => {
-    setCompanies(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
+  const addCompany = async (companyData: any) => {
+    const payload = {
+      name: companyData.name,
+      domain: companyData.name.toLowerCase().replace(/\s+/g, '') + '.com', // Generate domain
+      adminEmail: companyData.email,
+      adminPassword: companyData.adminPassword || 'password123', // should be provided
+      plan_name: companyData.plan,
+      country: companyData.country
+    };
+    await api.post("/company", payload);
+    fetchData();
   };
 
-  const suspendCompany = (id: number) => {
-    setCompanies(prev => prev.map(c => c.id === id ? { ...c, status: "suspended", mrr: 0 } : c));
+  const updateCompany = async (id: string, updates: any) => {
+    const payload: any = {};
+    if (updates.plan) payload.plan_name = updates.plan;
+    await api.put(`/companies/${id}`, payload);
+    fetchData();
   };
 
-  const activateCompany = (id: number) => {
-    setCompanies(prev => prev.map(c => c.id === id ? { ...c, status: "active" } : c));
+  const suspendCompany = async (id: string) => {
+    await api.put(`/companies/${id}`, { status: 'suspended' });
+    fetchData();
+  };
+
+  const activateCompany = async (id: string) => {
+    await api.put(`/companies/${id}`, { status: 'active' });
+    fetchData();
   };
 
   return (
-    <PlatformContext.Provider value={{ plans, companies, addPlan, updatePlan, deletePlan, addCompany, updateCompany, suspendCompany, activateCompany }}>
+    <PlatformContext.Provider value={{
+      plans, companies, users, loading, refreshData: fetchData,
+      addPlan, updatePlan, deletePlan,
+      addCompany, updateCompany, suspendCompany, activateCompany
+    }}>
       {children}
     </PlatformContext.Provider>
   );

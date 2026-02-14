@@ -40,6 +40,7 @@ export function authenticate(
     }
 
     req.auth = payload;
+    console.log('Auth middleware passed, user:', payload.user_id);
     next();
   } catch {
     throw new AppError('Invalid or expired token', 401);

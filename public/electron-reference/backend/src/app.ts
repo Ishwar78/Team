@@ -63,6 +63,8 @@ app.get("/health", (_req, res) => {
   });
 });
 
+import { publicRoutes } from "./routes/public.routes";
+
 /* ================= ROUTES ================= */
 app.use("/api/auth", authRoutes);
 app.use("/api/dashboard", dashboardRoutes);
@@ -72,6 +74,7 @@ app.use("/api/agent/activity", activityRoutes);
 app.use("/api/agent/screenshots", screenshotRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/super-admin", superAdminRoutes);
+app.use("/api/public", publicRoutes);
 
 /* ================= ERROR HANDLER ================= */
 app.use(errorHandler);

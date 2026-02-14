@@ -51,7 +51,7 @@ router.post("/", upload.single("file"), async (req, res, next) => {
       timestamp: req.body.timestamp
         ? new Date(req.body.timestamp)
         : new Date(),
-      file_path: req.file.filename,
+      s3_key: req.file.filename,
       file_size: req.file.size,
       resolution: {
         width: Number(req.body.resolution_width || 1280),

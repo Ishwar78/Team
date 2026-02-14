@@ -57,6 +57,7 @@ router.get(
   authenticate,
   requireRole('company_admin', 'sub_admin'),
   async (req, res) => {
+    console.log('Entering /users handler, company_id:', req.auth!.company_id);
     const users = await User.find({
       company_id: req.auth!.company_id,
       role: { $ne: 'super_admin' },
