@@ -31,4 +31,4 @@ router.post('/', validate(schema), async (req, res) => {
   res.json({ success: true });
 });
 
-export default router;
+export const activityRoutes = router;

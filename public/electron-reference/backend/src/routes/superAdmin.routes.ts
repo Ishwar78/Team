@@ -66,4 +66,4 @@ router.get(
   }
 );
 
-export default router;
+export const superAdminRoutes = router;

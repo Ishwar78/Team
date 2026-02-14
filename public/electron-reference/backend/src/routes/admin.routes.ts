@@ -166,4 +166,4 @@ router.post('/logout', authenticate, async (_req, res) => {
   res.json({ success: true });
 });
 
-export default router;
+export const adminRoutes = router;

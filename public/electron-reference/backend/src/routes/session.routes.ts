@@ -32,12 +32,12 @@ router.post('/start', validate(startSchema), async (req, res) => {
     status: { $in: ['active', 'paused'] },
   });
 
- if (existing) {
-  return res.json({
-    session_id: existing._id,
-    message: 'Session already active'
-  });
-}
+  if (existing) {
+    return res.json({
+      session_id: existing._id,
+      message: 'Session already active'
+    });
+  }
 
 
   const session = await Session.create({
@@ -143,4 +143,4 @@ router.get(
   }
 );
 
-export default router;
+export const sessionRoutes = router;

@@ -95,4 +95,4 @@ router.get(
   }
 );
 
-export default router;
+export const screenshotRoutes = router;

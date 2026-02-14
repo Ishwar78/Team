@@ -9,12 +9,12 @@ import { superAdminRoutes } from "./routes/superAdmin.routes";
 
 import { authRoutes } from "./routes/auth.routes";
 
-import companyRoutes from "./routes/company.routes";
-import sessionRoutes from "./routes/session.routes";
-import activityRoutes from "./routes/activity.routes";
-import screenshotRoutes from "./routes/screenshot.routes";
-import adminRoutes from "./routes/admin.routes";
-import dashboardRoutes from "./routes/dashboard.routes";
+import { companyRoutes } from "./routes/company.routes";
+import { sessionRoutes } from "./routes/session.routes";
+import { activityRoutes } from "./routes/activity.routes";
+import { screenshotRoutes } from "./routes/screenshot.routes";
+import { adminRoutes } from "./routes/admin.routes";
+import { dashboardRoutes } from "./routes/dashboard.routes";
 
 const app = express();
 
