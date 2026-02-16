@@ -9,6 +9,7 @@ import { rateLimiter } from "../middleware/rateLimiter";
 
 import { User } from "../models/User";
 import { Company } from "../models/Company";
+import { Invitation } from "../models/Invitation";
 import { env } from "../config/env";
 import { AppError } from "../utils/errors";
 
@@ -170,3 +171,74 @@ authRoutes.post(
     res.json({ success: true });
   }
 );
+
+/* ================= INVITATIONS ================= */
+
+authRoutes.get("/invite/:token", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { token } = req.params;
+    const invitation = await Invitation.findOne({ token, status: "pending" }).populate("company_id", "name");
+
+    if (!invitation) {
+      throw new AppError("Invalid or expired invitation", 404);
+    }
+
+    if (invitation.expiresAt < new Date()) {
+      invitation.status = "expired";
+      await invitation.save();
+      throw new AppError("Invitation has expired", 410);
+    }
+
+    res.json({
+      success: true,
+      invitation: {
+        email: invitation.email,
+        role: invitation.role,
+        companyName: (invitation.company_id as any).name,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+authRoutes.post("/accept-invite", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { token, name, password, phone } = req.body;
+
+    const invitation = await Invitation.findOne({ token, status: "pending" });
+    if (!invitation) throw new AppError("Invalid invitation", 404);
+
+    if (invitation.expiresAt < new Date()) {
+      invitation.status = "expired";
+      await invitation.save();
+      throw new AppError("Invitation has expired", 410);
+    }
+
+    // Check if user already exists (extra safety)
+    const existing = await User.findOne({ email: invitation.email });
+    if (existing) throw new AppError("User already exists", 400);
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const user = await User.create({
+      name,
+      email: invitation.email,
+      password_hash: hashedPassword,
+      company_id: invitation.company_id,
+      role: invitation.role,
+      status: "active",
+      phone: phone || "",
+    });
+
+    invitation.status = "accepted";
+    await invitation.save();
+
+    res.status(201).json({
+      success: true,
+      message: "Account activated successfully",
+    });
+  } catch (err) {
+    next(err);
+  }
+});

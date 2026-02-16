@@ -9,15 +9,24 @@ export function authenticate(
   _res: Response,
   next: NextFunction
 ): void {
+  // Allow token in header OR query param (for <img> tags)
   const header = req.headers.authorization;
+  const queryToken = req.query.token as string | undefined;
 
-  if (!header?.startsWith('Bearer ')) {
+  let token = '';
+
+  if (header?.startsWith('Bearer ')) {
+    token = header.slice(7);
+  } else if (queryToken) {
+    token = queryToken;
+  }
+
+  if (!token) {
     throw new AppError('Missing authorization token', 401);
   }
 
   try {
-    const token = header.slice(7);
-
+    console.log('Verifying token:', token.substring(0, 10) + '...');
     const payload = jwt.verify(
       token,
       env.JWT_PRIVATE_KEY,
@@ -26,6 +35,8 @@ export function authenticate(
       }
     ) as AuthPayload;
 
+    console.log('Token verified, payload:', JSON.stringify(payload));
+
     // Optional device binding check
     const deviceHeader = req.headers['x-device-id'] as string | undefined;
     if (
@@ -33,6 +44,7 @@ export function authenticate(
       payload.device_id &&
       deviceHeader !== payload.device_id
     ) {
+      console.warn('Device ID mismatch:', { header: deviceHeader, payload: payload.device_id });
       throw new AppError(
         'Device ID mismatch — token bound to a different device',
         403
@@ -40,9 +52,10 @@ export function authenticate(
     }
 
     req.auth = payload;
-    console.log('Auth middleware passed, user:', payload.user_id);
+    console.log('Auth middleware passed for user:', payload.user_id, 'role:', payload.role);
     next();
-  } catch {
+  } catch (err) {
+    console.error('Auth middleware failed:', err instanceof Error ? err.message : err);
     throw new AppError('Invalid or expired token', 401);
   }
 }

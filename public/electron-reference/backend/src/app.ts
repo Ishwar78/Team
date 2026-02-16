@@ -15,6 +15,7 @@ import { activityRoutes } from "./routes/activity.routes";
 import { screenshotRoutes } from "./routes/screenshot.routes";
 import { adminRoutes } from "./routes/admin.routes";
 import { dashboardRoutes } from "./routes/dashboard.routes";
+import { paymentRoutes } from "./routes/payment.routes";
 
 const app = express();
 
@@ -75,6 +76,7 @@ app.use("/api/agent/screenshots", screenshotRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/super-admin", superAdminRoutes);
 app.use("/api/public", publicRoutes);
+app.use("/api/payment", paymentRoutes);
 
 /* ================= ERROR HANDLER ================= */
 app.use(errorHandler);

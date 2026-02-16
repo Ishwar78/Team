@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { Types } from 'mongoose';
 import { z } from 'zod';
 import { authenticate } from '../middleware/auth';
 import { enforceTenant } from '../middleware/tenantIsolation';
@@ -29,6 +30,88 @@ router.post('/', validate(schema), async (req, res) => {
   await ActivityLog.insertMany(docs);
 
   res.json({ success: true });
+});
+
+/* ================= USAGE AGGREGATION ================= */
+
+router.get('/usage', async (req, res, next) => {
+  try {
+    const { userId, period } = req.query;
+    const companyId = req.auth!.company_id;
+
+    let startDate = new Date();
+    if (period === 'week') {
+      startDate.setDate(startDate.getDate() - 7);
+    } else if (period === 'month') {
+      startDate.setMonth(startDate.getMonth() - 1);
+    } else {
+      // today
+      startDate.setHours(0, 0, 0, 0);
+    }
+
+    const match: any = {
+      company_id: new Types.ObjectId(companyId as string),
+      timestamp: { $gte: startDate }
+    };
+
+    if (userId && userId !== 'all') {
+      match.user_id = new Types.ObjectId(userId as string);
+    }
+
+    const apps = await ActivityLog.aggregate([
+      { $match: match },
+      {
+        $group: {
+          _id: "$active_window.app_name",
+          totalSeconds: {
+            $sum: {
+              $divide: [{ $subtract: ["$interval_end", "$interval_start"] }, 1000]
+            }
+          },
+          users: { $addToSet: "$user_id" },
+          category: { $first: "$active_window.category" }
+        }
+      },
+      {
+        $project: {
+          name: "$_id",
+          hours: { $divide: ["$totalSeconds", 3600] },
+          users: { $size: "$users" },
+          category: { $ifNull: ["$category", "Other"] }
+        }
+      },
+      { $sort: { hours: -1 } }
+    ]);
+
+    const urls = await ActivityLog.aggregate([
+      { $match: { ...match, "active_window.url": { $exists: true, $ne: "" } } },
+      {
+        $group: {
+          _id: "$active_window.url",
+          totalSeconds: {
+            $sum: {
+              $divide: [{ $subtract: ["$interval_end", "$interval_start"] }, 1000]
+            }
+          },
+          visits: { $sum: 1 },
+          category: { $first: "$active_window.category" }
+        }
+      },
+      {
+        $project: {
+          url: "$_id",
+          hours: { $divide: ["$totalSeconds", 3600] },
+          visits: "$visits",
+          category: { $ifNull: ["$category", "Web"] }
+        }
+      },
+      { $sort: { hours: -1 } }
+    ]);
+
+    res.json({ apps, urls });
+  } catch (err) {
+    next(err);
+  }
 });
 
 export const activityRoutes = router;

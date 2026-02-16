@@ -13,7 +13,7 @@ router.use(authenticate, enforceTenant);
 
 /* ================= LOCAL UPLOAD FOLDER ================= */
 
-const uploadDir = path.join(__dirname, "../../uploads");
+const uploadDir = path.resolve(process.cwd(), "uploads");
 
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
@@ -94,5 +94,28 @@ router.get(
     }
   }
 );
+
+/* ================= DOWNLOAD/VIEW ================= */
+
+router.get("/download/:id", async (req, res, next) => {
+  try {
+    const shot = await Screenshot.findById(req.params.id);
+    if (!shot) throw new AppError("Screenshot not found", 404);
+
+    // Ensure they belong to the same company
+    if (shot.company_id.toString() !== req.auth!.company_id.toString()) {
+      throw new AppError("Access denied", 403);
+    }
+
+    const filePath = path.join(uploadDir, shot.s3_key);
+    if (!fs.existsSync(filePath)) {
+      throw new AppError("File not found on server", 404);
+    }
+
+    res.sendFile(filePath);
+  } catch (err) {
+    next(err);
+  }
+});
 
 export const screenshotRoutes = router;

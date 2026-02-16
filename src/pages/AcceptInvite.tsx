@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -13,9 +13,11 @@ import { toast } from "@/hooks/use-toast";
 import OtpVerification from "@/components/OtpVerification";
 
 const AcceptInvite = () => {
-  const { token } = useParams<{ token: string }>();
+  const { token: inviteToken } = useParams<{ token: string }>();
   const navigate = useNavigate();
-  const { invites, acceptInvite, completePendingAuth } = useAuth();
+  const { token: authToken } = useAuth();
+  const [invite, setInvite] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
@@ -24,9 +26,26 @@ const AcceptInvite = () => {
   const [error, setError] = useState("");
   const [otpStep, setOtpStep] = useState(false);
 
-  const invite = invites.find(i => i.token === token);
+  useEffect(() => {
+    if (inviteToken) {
+      fetchInviteDetails();
+    }
+  }, [inviteToken]);
 
-  const handleAccept = (e: React.FormEvent) => {
+  const fetchInviteDetails = async () => {
+    try {
+      const res = await fetch(`http://localhost:5000/api/auth/invite/${inviteToken}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Invalid invite");
+      setInvite(data.invitation);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAccept = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
@@ -35,22 +54,44 @@ const AcceptInvite = () => {
     if (password.length < 6) { setError("Password must be at least 6 characters."); return; }
     if (password !== confirmPassword) { setError("Passwords do not match."); return; }
 
-    const result = acceptInvite(token!, name.trim(), password, phone.trim());
-    if (result.success && result.requiresOtp) {
-      setOtpStep(true);
-    } else if (result.success) {
-      toast({ title: "Account Activated!", description: `Welcome to ${invite?.companyName}.` });
-      navigate("/dashboard");
-    } else {
-      setError(result.error || "Something went wrong.");
+    setLoading(true);
+    try {
+      const res = await fetch(`http://localhost:5000/api/auth/accept-invite`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token: inviteToken,
+          name: name.trim(),
+          password,
+          phone: phone.trim()
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to accept invite");
+
+      toast({ title: "Account Activated!", description: `Success! You can now log in.` });
+      navigate("/login");
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleOtpVerified = () => {
-    completePendingAuth();
-    toast({ title: "Account Activated!", description: `Phone verified. Welcome to ${invite?.companyName}. Tracking active.` });
-    navigate("/dashboard");
+    // Basic success flow for now since backend create happens in accept-invite
+    toast({ title: "Account Activated!", description: `Phone verified. Welcome.` });
+    navigate("/login");
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center">
+        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   if (!invite) {
     return (

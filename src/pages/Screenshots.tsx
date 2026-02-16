@@ -146,7 +146,7 @@ const Screenshots = () => {
                       size="sm"
                       onClick={() => {
                         const link = document.createElement("a");
-                        link.href = `http://localhost:5000/api/agent/screenshots/download/${shot._id}`;
+                        link.href = `http://localhost:5000/api/agent/screenshots/download/${shot._id}?token=${token}`;
                         link.download = `screenshot-${shot._id}.png`;
                         link.click();
                       }}
@@ -157,12 +157,12 @@ const Screenshots = () => {
                 </CardHeader>
                 <CardContent className="p-0">
                   <img
-                    src={`http://localhost:5000/api/agent/screenshots/download/${shot._id}`}
+                    src={`http://localhost:5000/api/agent/screenshots/download/${shot._id}?token=${token}`}
                     className="w-full h-48 object-cover cursor-pointer hover:opacity-90 transition-opacity"
                     alt="Screenshot"
                     onClick={() => {
                       window.open(
-                        `http://localhost:5000/api/agent/screenshots/download/${shot._id}`,
+                        `http://localhost:5000/api/agent/screenshots/download/${shot._id}?token=${token}`,
                         "_blank"
                       );
                     }}

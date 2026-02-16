@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import {
@@ -40,6 +40,18 @@ interface InviteData {
   invites: { email: string; role: string }[];
 }
 
+const API = import.meta.env.VITE_API_BASE_URL;
+const RAZORPAY_KEY = import.meta.env.VITE_RAZORPAY_KEY_ID;
+
+interface BackendPlan {
+  id: string;
+  name: string;
+  price: number;
+  users: number;
+  features: string[];
+  popular?: boolean;
+}
+
 type StepId = "company" | "admin" | "plan" | "invite" | "complete";
 
 const steps: { id: StepId; label: string; icon: React.ElementType }[] = [
@@ -48,29 +60,6 @@ const steps: { id: StepId; label: string; icon: React.ElementType }[] = [
   { id: "plan", label: "Select Plan", icon: CreditCard },
   { id: "invite", label: "Invite Team", icon: Users },
   { id: "complete", label: "Complete", icon: Rocket },
-];
-
-const plans = [
-  {
-    id: "starter", name: "Starter", price: 49, users: 10, storage: "2 GB",
-    screenshots: "12/hr", retention: "3 Months", popular: false,
-    features: ["10 team members", "Basic reporting", "12 screenshots/hr", "3-month data retention", "Email support"],
-  },
-  {
-    id: "professional", name: "Professional", price: 99, users: 25, storage: "5 GB",
-    screenshots: "12/hr", retention: "3 Months", popular: true,
-    features: ["25 team members", "Advanced reporting", "URL & app tracking", "Priority support", "Sub-admin roles"],
-  },
-  {
-    id: "team", name: "Team", price: 199, users: 50, storage: "15 GB",
-    screenshots: "12/hr", retention: "6 Months", popular: false,
-    features: ["50 team members", "Custom reports & exports", "API access", "Dedicated support", "6-month retention"],
-  },
-  {
-    id: "enterprise", name: "Enterprise", price: 499, users: 200, storage: "Unlimited",
-    screenshots: "Custom", retention: "1 Year", popular: false,
-    features: ["200+ members", "Custom integrations", "SLA guarantee", "On-premise option", "1-year retention"],
-  },
 ];
 
 const industries = [
@@ -225,7 +214,7 @@ const AdminStep = ({ data, onChange }: { data: AdminData; onChange: (d: AdminDat
   );
 };
 
-const PlanStep = ({ data, onChange }: { data: PlanData; onChange: (d: PlanData) => void }) => (
+const PlanStep = ({ data, onChange, plans, loading }: { data: PlanData; onChange: (d: PlanData) => void; plans: BackendPlan[]; loading: boolean }) => (
   <div className="space-y-5">
     <div className="text-center mb-6">
       <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-3">
@@ -235,45 +224,50 @@ const PlanStep = ({ data, onChange }: { data: PlanData; onChange: (d: PlanData) 
       <p className="text-sm text-muted-foreground mt-1">All plans include a 14-day free trial</p>
     </div>
 
-    <div className="grid sm:grid-cols-2 gap-3">
-      {plans.map(plan => {
-        const isSelected = data.selectedPlan === plan.id;
-        return (
-          <motion.button
-            key={plan.id}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => onChange({ selectedPlan: plan.id })}
-            className={`text-left rounded-xl border p-4 transition-all ${
-              isSelected
+    {loading ? (
+      <div className="flex justify-center py-10 text-muted-foreground">Loading plans...</div>
+    ) : plans.length === 0 ? (
+      <div className="flex justify-center py-10 text-muted-foreground">No plans available. Contact support.</div>
+    ) : (
+      <div className="grid sm:grid-cols-2 gap-3">
+        {plans.map(plan => {
+          const isSelected = data.selectedPlan === plan.id;
+          return (
+            <motion.button
+              key={plan.id}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => onChange({ selectedPlan: plan.id })}
+              className={`text-left rounded-xl border p-4 transition-all ${isSelected
                 ? "border-primary bg-primary/5 shadow-glow ring-1 ring-primary/30"
                 : "border-border bg-gradient-card hover:border-primary/30"
-            }`}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="font-semibold text-foreground">{plan.name}</h3>
-              <div className="flex items-center gap-1.5">
-                {plan.popular && <Badge className="text-[9px] bg-primary/10 text-primary">Popular</Badge>}
-                {isSelected && (
-                  <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
-                    <Check size={12} className="text-primary-foreground" />
-                  </div>
-                )}
+                }`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-semibold text-foreground">{plan.name}</h3>
+                <div className="flex items-center gap-1.5">
+                  {plan.popular && <Badge className="text-[9px] bg-primary/10 text-primary">Popular</Badge>}
+                  {isSelected && (
+                    <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                      <Check size={12} className="text-primary-foreground" />
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-            <div className="text-2xl font-bold text-foreground">
-              ${plan.price}<span className="text-xs text-muted-foreground font-normal">/mo</span>
-            </div>
-            <ul className="mt-3 space-y-1.5">
-              {plan.features.map(f => (
-                <li key={f} className="text-xs text-muted-foreground flex items-start gap-1.5">
-                  <Check size={10} className="text-status-active mt-0.5 shrink-0" /> {f}
-                </li>
-              ))}
-            </ul>
-          </motion.button>
-        );
-      })}
-    </div>
+              <div className="text-2xl font-bold text-foreground">
+                ${plan.price}<span className="text-xs text-muted-foreground font-normal">/mo</span>
+              </div>
+              <ul className="mt-3 space-y-1.5">
+                {(plan.features ?? []).map(f => (
+                  <li key={f} className="text-xs text-muted-foreground flex items-start gap-1.5">
+                    <Check size={10} className="text-status-active mt-0.5 shrink-0" /> {f}
+                  </li>
+                ))}
+              </ul>
+            </motion.button>
+          );
+        })}
+      </div>
+    )}
 
     <div className="rounded-lg bg-secondary/30 border border-border p-3 text-center">
       <p className="text-xs text-muted-foreground">
@@ -351,7 +345,7 @@ const InviteStep = ({ data, onChange }: { data: InviteData; onChange: (d: Invite
   );
 };
 
-const CompleteStep = ({ companyData, planData, inviteData }: { companyData: CompanyData; planData: PlanData; inviteData: InviteData }) => {
+const CompleteStep = ({ companyData, planData, inviteData, plans }: { companyData: CompanyData; planData: PlanData; inviteData: InviteData; plans: BackendPlan[] }) => {
   const selectedPlan = plans.find(p => p.id === planData.selectedPlan);
   const inviteCount = inviteData.invites.filter(i => i.email).length;
 
@@ -419,8 +413,32 @@ const Onboarding = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [companyData, setCompanyData] = useState<CompanyData>({ name: "", website: "", industry: "", size: "", country: "" });
   const [adminData, setAdminData] = useState<AdminData>({ firstName: "", lastName: "", email: "", password: "", confirmPassword: "" });
-  const [planData, setPlanData] = useState<PlanData>({ selectedPlan: "professional" });
+  const [planData, setPlanData] = useState<PlanData>({ selectedPlan: "" });
   const [inviteData, setInviteData] = useState<InviteData>({ invites: [{ email: "", role: "user" }] });
+  const [processing, setProcessing] = useState(false);
+  const [plans, setPlans] = useState<BackendPlan[]>([]);
+  const [plansLoading, setPlansLoading] = useState(true);
+
+  // Fetch plans from backend on mount
+  useEffect(() => {
+    const fetchPlans = async () => {
+      try {
+        const res = await fetch(`${API}/api/public/plans`);
+        const data = await res.json();
+        if (data.success && data.data.length > 0) {
+          setPlans(data.data);
+          // Auto-select first popular plan, or first plan
+          const popular = data.data.find((p: BackendPlan) => p.popular);
+          setPlanData({ selectedPlan: popular ? popular.id : data.data[0].id });
+        }
+      } catch (err) {
+        console.error("Failed to fetch plans", err);
+      } finally {
+        setPlansLoading(false);
+      }
+    };
+    fetchPlans();
+  }, []);
 
   const isLastStep = currentStep === steps.length - 1;
   const progress = ((currentStep + 1) / steps.length) * 100;
@@ -437,6 +455,11 @@ const Onboarding = () => {
   };
 
   const handleNext = () => {
+    // When moving from Plan step (2) to Invite step (3), trigger registration + Razorpay
+    if (currentStep === 2) {
+      handleComplete();
+      return;
+    }
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
     }
@@ -462,92 +485,240 @@ const Onboarding = () => {
 
 
 
+  //   const handleComplete = async () => {
+  //   try {
+  //     const response = await fetch("http://localhost:5000/api/company/register", {
+  //       method: "POST",
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //       },
+  //       body: JSON.stringify({
+  //         companyName: companyData.name,
+  //         domain: companyData.website
+  //           ? new URL(companyData.website).hostname
+  //           : companyData.name.toLowerCase().replace(/\s+/g, ""),
+  //         adminName: `${adminData.firstName} ${adminData.lastName}`,
+  //         email: adminData.email,
+  //         password: adminData.password,
+  //       }),
+  //     });
+
+  //     const data = await response.json();
+
+  //     if (!response.ok) {
+  //       throw new Error(data.message || "Registration failed");
+  //     }
+
+  //     toast({
+  //       title: "Company Registered Successfully!",
+  //       description: "Logging you in...",
+  //     });
+
+  //     // Auto login after registration
+  //     const loginRes = await fetch("http://localhost:5000/api/auth/login", {
+  //       method: "POST",
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //       },
+  //       body: JSON.stringify({
+  //         email: adminData.email,
+  //         password: adminData.password,
+  //         device_id: crypto.randomUUID(),
+  //         device_name: "Web Browser",
+  //         os: navigator.platform,
+  //       }),
+  //     });
+
+  //     const loginData = await loginRes.json();
+
+  //     if (!loginRes.ok) {
+  //       throw new Error(loginData.message || "Login failed");
+  //     }
+
+  //     // Save token
+  //     localStorage.setItem("token", loginData.token);
+  //     localStorage.setItem("user", JSON.stringify(loginData.user));
+
+  //     toast({
+  //       title: "Welcome!",
+  //       description: "Redirecting to dashboard...",
+  //     });
+
+  //     setTimeout(() => navigate("/dashboard"), 1200);
+  //   } catch (error: any) {
+  //     toast({
+  //       title: "Error",
+  //       description: error.message,
+  //       variant: "destructive",
+  //     });
+  //   }
+  // };
+
+
+
+
   const handleComplete = async () => {
-  try {
-    const response = await fetch("http://localhost:5000/api/company/register", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        companyName: companyData.name,
-        domain: companyData.website
-          ? new URL(companyData.website).hostname
-          : companyData.name.toLowerCase().replace(/\s+/g, ""),
-        adminName: `${adminData.firstName} ${adminData.lastName}`,
-        email: adminData.email,
-        password: adminData.password,
-      }),
-    });
+    if (processing) return;
+    setProcessing(true);
 
-    const data = await response.json();
+    try {
+      /* ================= 1️⃣ REGISTER COMPANY ================= */
 
-    if (!response.ok) {
-      throw new Error(data.message || "Registration failed");
+      const registerRes = await fetch(`${API}/api/company/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          companyName: companyData.name,
+          domain: companyData.website
+            ? companyData.website.replace(/^https?:\/\//, "")
+            : companyData.name.toLowerCase().replace(/\s+/g, ""),
+          adminName: `${adminData.firstName} ${adminData.lastName}`,
+          email: adminData.email,
+          password: adminData.password,
+        }),
+      });
+
+      const registerData = await registerRes.json();
+      if (!registerRes.ok) {
+        throw new Error(registerData.message || "Registration failed");
+      }
+
+      const companyId = registerData.company;
+
+      /* ================= 2️⃣ FIND SELECTED PLAN ================= */
+
+      const selectedPlan = plans.find((p) => p.id === planData.selectedPlan);
+
+      if (!selectedPlan) {
+        throw new Error("Please select a plan before continuing.");
+      }
+
+      /* ================= 3️⃣ CREATE ORDER ================= */
+
+      const orderRes = await fetch(`${API}/api/payment/create-order`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          planId: selectedPlan.id,
+          companyId,
+        }),
+      });
+
+      const orderData = await orderRes.json();
+      if (!orderRes.ok) {
+        throw new Error(orderData.message || "Payment initialization failed");
+      }
+
+      const order = orderData.order;
+
+      if (!RAZORPAY_KEY) {
+        throw new Error("Razorpay key missing in environment. Add VITE_RAZORPAY_KEY_ID to .env");
+      }
+
+      /* ================= 4️⃣ OPEN RAZORPAY ================= */
+
+      const options = {
+        key: RAZORPAY_KEY,
+        amount: order.amount,
+        currency: "INR",
+        name: "Web Mok",
+        description: "Subscription Payment",
+        order_id: order.id,
+
+        handler: async function (response: any) {
+          /* ================= 5️⃣ VERIFY PAYMENT ================= */
+
+          const verifyRes = await fetch(`${API}/api/payment/verify`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              ...response,
+              companyId,
+              planId: selectedPlan.id,
+            }),
+          });
+
+          const verifyData = await verifyRes.json();
+
+          if (!verifyRes.ok || !verifyData.success) {
+            toast({
+              title: "Error",
+              description: "Payment verification failed",
+              variant: "destructive",
+            });
+            setProcessing(false);
+            return;
+          }
+
+          /* ================= 6️⃣ AUTO LOGIN ================= */
+
+          const loginRes = await fetch(`${API}/api/auth/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email: adminData.email,
+              password: adminData.password,
+              device_id: crypto.randomUUID(),
+              device_name: "Web Browser",
+              os: navigator.platform,
+            }),
+          });
+
+          const loginData = await loginRes.json();
+
+          if (!loginRes.ok) {
+            throw new Error(loginData.message || "Login failed");
+          }
+
+          localStorage.setItem("token", loginData.token);
+          localStorage.setItem("refreshToken", loginData.refreshToken);
+          localStorage.setItem("user", JSON.stringify(loginData.user));
+
+          toast({
+            title: "Payment Successful 🎉",
+            description: "Your subscription is active!",
+          });
+
+          setProcessing(false);
+          // Move to the Complete step after successful payment
+          setCurrentStep(4);
+        },
+
+        modal: {
+          ondismiss: function () {
+            setProcessing(false);
+            toast({
+              title: "Payment Cancelled",
+              description: "You can try again.",
+              variant: "destructive",
+            });
+          },
+        },
+
+        theme: { color: "#3B82F6" },
+      };
+
+      const rzp = new (window as any).Razorpay(options);
+      rzp.open();
+
+    } catch (error: any) {
+      setProcessing(false);
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     }
-
-    toast({
-      title: "Company Registered Successfully!",
-      description: "Logging you in...",
-    });
-
-    // Auto login after registration
-    const loginRes = await fetch("http://localhost:5000/api/auth/login", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        email: adminData.email,
-        password: adminData.password,
-        device_id: crypto.randomUUID(),
-        device_name: "Web Browser",
-        os: navigator.platform,
-      }),
-    });
-
-    const loginData = await loginRes.json();
-
-    if (!loginRes.ok) {
-      throw new Error(loginData.message || "Login failed");
-    }
-
-    // Save token
-    localStorage.setItem("token", loginData.token);
-    localStorage.setItem("user", JSON.stringify(loginData.user));
-
-    toast({
-      title: "Welcome!",
-      description: "Redirecting to dashboard...",
-    });
-
-    setTimeout(() => navigate("/dashboard"), 1200);
-  } catch (error: any) {
-    toast({
-      title: "Error",
-      description: error.message,
-      variant: "destructive",
-    });
-  }
-};
-
-
-
-
-
-
-
-
-
+  };
 
 
   const renderStep = () => {
     switch (currentStep) {
       case 0: return <CompanyStep data={companyData} onChange={setCompanyData} />;
       case 1: return <AdminStep data={adminData} onChange={setAdminData} />;
-      case 2: return <PlanStep data={planData} onChange={setPlanData} />;
+      case 2: return <PlanStep data={planData} onChange={setPlanData} plans={plans} loading={plansLoading} />;
       case 3: return <InviteStep data={inviteData} onChange={setInviteData} />;
-      case 4: return <CompleteStep companyData={companyData} planData={planData} inviteData={inviteData} />;
+      case 4: return <CompleteStep companyData={companyData} planData={planData} inviteData={inviteData} plans={plans} />;
       default: return null;
     }
   };
@@ -562,16 +733,14 @@ const Onboarding = () => {
             <div className="flex items-center justify-between mb-3">
               {steps.map((step, i) => (
                 <div key={step.id} className="flex items-center gap-1.5">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
-                    i < currentStep ? "bg-status-active text-background" :
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${i < currentStep ? "bg-status-active text-background" :
                     i === currentStep ? "bg-primary text-primary-foreground shadow-glow" :
-                    "bg-secondary text-muted-foreground"
-                  }`}>
+                      "bg-secondary text-muted-foreground"
+                    }`}>
                     {i < currentStep ? <Check size={14} /> : <step.icon size={14} />}
                   </div>
-                  <span className={`text-xs hidden sm:block ${
-                    i === currentStep ? "text-foreground font-medium" : "text-muted-foreground"
-                  }`}>
+                  <span className={`text-xs hidden sm:block ${i === currentStep ? "text-foreground font-medium" : "text-muted-foreground"
+                    }`}>
                     {step.label}
                   </span>
                   {i < steps.length - 1 && (
@@ -617,12 +786,12 @@ const Onboarding = () => {
                   </Button>
                 )}
                 {isLastStep ? (
-                  <Button onClick={handleComplete} className="gap-1" size="lg">
+                  <Button onClick={() => navigate("/dashboard")} className="gap-1" size="lg">
                     <Rocket size={14} /> Go to Dashboard
                   </Button>
                 ) : (
-                  <Button onClick={handleNext} disabled={!canProceed()} className="gap-1">
-                    Continue <ArrowRight size={14} />
+                  <Button onClick={handleNext} disabled={!canProceed() || processing} className="gap-1">
+                    {processing ? "Processing..." : <>Continue <ArrowRight size={14} /></>}
                   </Button>
                 )}
               </div>

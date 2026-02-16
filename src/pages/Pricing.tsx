@@ -95,7 +95,8 @@ const Pricing = () => {
                       </li>
                     ))}
                   </ul>
-                  <Link to="/login">
+                  {/* <Link to="/login"> */}
+                  <Link to="/onboarding">
                     <Button
                       className="w-full gap-1"
                       variant={plan.popular ? "default" : "outline"}
