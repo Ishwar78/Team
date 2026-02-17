@@ -16,6 +16,7 @@ import { adminRoutes } from "./routes/admin.routes";
 import { dashboardRoutes } from "./routes/dashboard.routes";
 import { publicRoutes } from "./routes/public.routes";
 import { paymentRoutes } from "./routes/payment.routes";
+import { claimRoutes } from "./routes/claim.routes";
 
 const app = express();
 
@@ -80,6 +81,7 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/super-admin", superAdminRoutes);
 app.use("/api/public", publicRoutes);
 app.use("/api/payment", paymentRoutes);
+app.use("/api/claims", claimRoutes);
 
 /* ================= ERROR HANDLER ================= */
 app.use(errorHandler);

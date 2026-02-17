@@ -163,6 +163,15 @@ router.post(
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
       });
 
+      // Send email
+      try {
+        const { sendInvitationEmail } = await import('../services/mail.service');
+        await sendInvitationEmail(email, token, company.name);
+      } catch (emailErr) {
+        console.error('Failed to send invite email:', emailErr);
+        // Optional: decide if we validation error or just log it
+      }
+
       res.status(201).json({ success: true, invitation });
     } catch (err) {
       next(err);

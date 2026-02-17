@@ -32,6 +32,8 @@ import AppRestrictions from "./pages/AppRestrictions";
 import IdleJustification from "./pages/IdleJustification";
 import Attendance from "./pages/Attendance";
 import AcceptInvite from "./pages/AcceptInvite";
+import SignUp from "./pages/SignUp";
+import TimeClaim from "./pages/TimeClaim";
 import NotFound from "./pages/NotFound";
 import TimeTracker from "./pages/features/TimeTracker";
 import TeamManagementFeature from "./pages/features/TeamManagementFeature";
@@ -64,6 +66,7 @@ const App = () => (
               <Route path="/login" element={<Login />} />
               <Route path="/admin/login" element={<CompanyAdminLogin />} />
               <Route path="/super/admin/login" element={<SuperAdminLogin />} />
+              <Route path="/signup" element={<SignUp />} />
               <Route path="/invite/:token" element={<AcceptInvite />} />
               <Route path="/onboarding" element={<Onboarding />} />
               <Route path="/download" element={<Download />} />
@@ -100,6 +103,9 @@ const App = () => (
               <Route path="/dashboard/notifications" element={<CompanyAdminAuthGuard><NotificationsPage /></CompanyAdminAuthGuard>} />
               <Route path="/dashboard/restrictions" element={<CompanyAdminAuthGuard><AppRestrictions /></CompanyAdminAuthGuard>} />
               <Route path="/dashboard/justifications" element={<CompanyAdminAuthGuard><IdleJustification /></CompanyAdminAuthGuard>} />
+
+              <Route path="/dashboard/justifications" element={<CompanyAdminAuthGuard><IdleJustification /></CompanyAdminAuthGuard>} />
+              <Route path="/dashboard/time-claim" element={<CompanyAdminAuthGuard><TimeClaim /></CompanyAdminAuthGuard>} />
 
               {/* Super Admin */}
               <Route path="/super-admin" element={<SuperAdminAuthGuard><SuperAdmin /></SuperAdminAuthGuard>} />

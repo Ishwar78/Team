@@ -219,7 +219,7 @@ const CompanyAdminLogin = () => {
             <p className="text-center text-sm text-muted-foreground mt-4">
               Don't have an account?{" "}
               <Link
-                to="/onboarding"
+                to="/signup"
                 className="text-primary hover:underline"
               >
                 Sign up

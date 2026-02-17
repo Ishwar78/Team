@@ -16,7 +16,9 @@ export const sendInvitationEmail = async (
   inviteToken: string,
   companyName: string
 ) => {
-  const inviteUrl = `${env.FRONTEND_URL}/invite/${inviteToken}`;
+  const inviteUrl = `${env.FRONTEND_URL}/signup?token=${inviteToken}`;
+  await transporter.verify();
+  console.log("SMTP READY");
 
   await transporter.sendMail({
     from: `"${companyName}" <${env.SMTP_USER}>`,

@@ -5,7 +5,8 @@ export interface IUser extends Document {
   email: string;
   password_hash: string;
   name: string;
-  role: 'super_admin' | 'company_admin' | 'sub_admin' | 'user';
+  phone?: string;
+  role: 'super_admin' | 'company_admin' | 'sub_admin' | 'user' | 'employee';
   devices: Array<{
     device_id: string;
     device_name: string;
@@ -50,9 +51,14 @@ const UserSchema = new Schema<IUser>(
       trim: true,
     },
 
+    phone: {
+      type: String,
+      trim: true,
+    },
+
     role: {
       type: String,
-      enum: ['super_admin', 'company_admin', 'sub_admin', 'user'],
+      enum: ['super_admin', 'company_admin', 'sub_admin', 'user', 'employee'],
       default: 'user',
     },
 

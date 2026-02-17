@@ -2,17 +2,18 @@ import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { Activity, Camera, Clock } from "lucide-react";
+import EmployeeDashboard from "./EmployeeDashboard";
 
 const Dashboard = () => {
-  const { token, loading } = useAuth();
+  const { token, loading, user } = useAuth();
   const [stats, setStats] = useState<any>(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!loading && token) {
+    if (!loading && token && user?.role !== 'employee') {
       fetchStats();
     }
-  }, [token, loading]);
+  }, [token, loading, user]);
 
   const fetchStats = async () => {
     try {
@@ -43,6 +44,11 @@ const Dashboard = () => {
       </DashboardLayout>
     );
 
+  // Render Employee Dashboard if role is employee
+  if (user?.role === 'employee' || user?.role === 'user') {
+    return <EmployeeDashboard />;
+  }
+
   if (error)
     return (
       <DashboardLayout>
@@ -66,7 +72,7 @@ const Dashboard = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        
+
         {/* Active Now */}
         <div className="bg-gradient-to-br from-cyan-500/10 to-blue-500/10 backdrop-blur-md border border-cyan-500/20 p-6 rounded-2xl shadow-lg hover:scale-[1.02] transition">
           <div className="flex items-center justify-between mb-4">
