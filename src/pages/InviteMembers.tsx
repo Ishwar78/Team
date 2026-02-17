@@ -13,10 +13,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { apiFetch } from "@/lib/api";
 
 const roles = [
-  { value: "user", label: "Employee", desc: "Desktop tracking only" },
+  { value: "employee", label: "Employee", desc: "Desktop tracking only" },
   { value: "sub_admin", label: "Sub-Admin", desc: "View reports & screenshots" },
-  { value: "admin", label: "Admin", desc: "Full company control" },
+  { value: "company_admin", label: "Admin", desc: "Full company control" },
 ];
+
 
 const InviteMembers = () => {
   const { token, user } = useAuth();

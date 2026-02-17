@@ -251,19 +251,55 @@ authRoutes.post(
 
 /* ================= INVITATIONS ================= */
 
-authRoutes.get("/invite/:token", async (req: Request, res: Response, next: NextFunction) => {
+// authRoutes.get("/invite/:token", async (req: Request, res: Response, next: NextFunction) => {
+//   try {
+//     const { token } = req.params;
+//     const invitation = await Invitation.findOne({ token, status: "pending" }).populate("company_id", "name");
+
+//     if (!invitation) {
+//       throw new AppError("Invalid or expired invitation", 404);
+//     }
+
+//     if (invitation.expiresAt < new Date()) {
+//       invitation.status = "expired";
+//       await invitation.save();
+//       throw new AppError("Invitation has expired", 410);
+//     }
+
+//     res.json({
+//       success: true,
+//       invitation: {
+//         email: invitation.email,
+//         role: invitation.role,
+//         companyName: (invitation.company_id as any).name,
+//       },
+//     });
+//   } catch (err) {
+//     next(err);
+//   }
+// });
+
+
+
+
+authRoutes.get("/invite/:token", async (req, res, next) => {
   try {
     const { token } = req.params;
-    const invitation = await Invitation.findOne({ token, status: "pending" }).populate("company_id", "name");
+
+    const invitation = await Invitation.findOne({ token })
+      .populate("company_id", "name");
 
     if (!invitation) {
-      throw new AppError("Invalid or expired invitation", 404);
+      throw new AppError("Invalid invitation", 404);
     }
 
-    if (invitation.expiresAt < new Date()) {
+    // Expiry check
+    if (
+      invitation.status === "pending" &&
+      invitation.expiresAt < new Date()
+    ) {
       invitation.status = "expired";
       await invitation.save();
-      throw new AppError("Invitation has expired", 410);
     }
 
     res.json({
@@ -271,51 +307,119 @@ authRoutes.get("/invite/:token", async (req: Request, res: Response, next: NextF
       invitation: {
         email: invitation.email,
         role: invitation.role,
+        status: invitation.status,
         companyName: (invitation.company_id as any).name,
       },
     });
+
   } catch (err) {
     next(err);
   }
 });
 
-authRoutes.post("/accept-invite", async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { token, name, password, phone } = req.body;
 
-    const invitation = await Invitation.findOne({ token, status: "pending" });
-    if (!invitation) throw new AppError("Invalid invitation", 404);
 
-    if (invitation.expiresAt < new Date()) {
-      invitation.status = "expired";
+
+
+
+// authRoutes.post("/accept-invite", async (req: Request, res: Response, next: NextFunction) => {
+//   try {
+//     const { token, name, password, phone } = req.body;
+
+//     const invitation = await Invitation.findOne({ token, status: "pending" });
+//     if (!invitation) throw new AppError("Invalid invitation", 404);
+
+//     if (invitation.expiresAt < new Date()) {
+//       invitation.status = "expired";
+//       await invitation.save();
+//       throw new AppError("Invitation has expired", 410);
+//     }
+
+//     // Check if user already exists (extra safety)
+//     const existing = await User.findOne({ email: invitation.email });
+//     if (existing) throw new AppError("User already exists", 400);
+
+//     const hashedPassword = await bcrypt.hash(password, 10);
+
+//     const user = await User.create({
+//       name,
+//       email: invitation.email,
+//       password_hash: hashedPassword,
+//       company_id: invitation.company_id,
+//       role: invitation.role,
+//       status: "active",
+//       phone: phone || "",
+//     });
+
+//     invitation.status = "accepted";
+//     await invitation.save();
+
+//     res.status(201).json({
+//       success: true,
+//       message: "Account activated successfully",
+//     });
+//   } catch (err) {
+//     next(err);
+//   }
+// });
+
+
+
+authRoutes.post(
+  "/accept-invite",
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { token, name, password, phone } = req.body;
+
+      if (!name || name.trim().length < 2)
+        throw new AppError("Name required", 400);
+
+      if (!password || password.length < 6)
+        throw new AppError("Password must be minimum 6 characters", 400);
+
+      const invitation = await Invitation.findOne({
+        token,
+        status: "pending",
+      });
+
+      if (!invitation)
+        throw new AppError("Invalid invitation", 404);
+
+      if (invitation.expiresAt < new Date()) {
+        invitation.status = "expired";
+        await invitation.save();
+        throw new AppError("Invitation expired", 410);
+      }
+
+      const existing = await User.findOne({
+        email: invitation.email,
+      });
+
+      if (existing)
+        throw new AppError("User already exists", 400);
+
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      await User.create({
+        name: name.trim(),
+        email: invitation.email,
+        password_hash: hashedPassword,
+        company_id: invitation.company_id,
+        role: invitation.role,
+        status: "active",
+        phone: phone || "",
+      });
+
+      invitation.status = "accepted";
       await invitation.save();
-      throw new AppError("Invitation has expired", 410);
+
+      res.status(201).json({
+        success: true,
+        message: "Account activated successfully",
+      });
+
+    } catch (err) {
+      next(err);
     }
-
-    // Check if user already exists (extra safety)
-    const existing = await User.findOne({ email: invitation.email });
-    if (existing) throw new AppError("User already exists", 400);
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const user = await User.create({
-      name,
-      email: invitation.email,
-      password_hash: hashedPassword,
-      company_id: invitation.company_id,
-      role: invitation.role,
-      status: "active",
-      phone: phone || "",
-    });
-
-    invitation.status = "accepted";
-    await invitation.save();
-
-    res.status(201).json({
-      success: true,
-      message: "Account activated successfully",
-    });
-  } catch (err) {
-    next(err);
   }
-});
+);
