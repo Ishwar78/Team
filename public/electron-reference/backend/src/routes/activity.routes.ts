@@ -10,22 +10,75 @@ import { ActivityLog } from '../models/ActivityLog';
 const router = Router();
 router.use(authenticate, enforceTenant);
 
+// const schema = z.object({
+//   session_id: z.string(),
+//   logs: z.array(z.object({
+//     timestamp: z.string().datetime(),
+//     activity_score: z.number().min(0).max(100),
+//   })),
+// });
+
+
+
 const schema = z.object({
   session_id: z.string(),
   logs: z.array(z.object({
     timestamp: z.string().datetime(),
+    interval_start: z.string().datetime(),
+    interval_end: z.string().datetime(),
+    keyboard_events: z.number().optional(),
+    mouse_events: z.number().optional(),
+    mouse_distance: z.number().optional(),
     activity_score: z.number().min(0).max(100),
-  })),
+    idle: z.boolean().optional(),
+    active_window: z.object({
+      title: z.string(),
+      app_name: z.string(),
+      url: z.string().optional(),
+      category: z.string().optional()
+    })
+  }))
 });
 
+
+
+
 router.post('/', validate(schema), async (req, res) => {
-  const docs = req.body.logs.map((log: any) => ({
-    ...log,
-    user_id: req.auth!.user_id,
-    company_id: req.auth!.company_id,
-    session_id: req.body.session_id,
-    timestamp: new Date(log.timestamp),
-  }));
+  // const docs = req.body.logs.map((log: any) => ({
+  //   ...log,
+  //   user_id: req.auth!.user_id,
+  //   company_id: req.auth!.company_id,
+  //   session_id: req.body.session_id,
+  //   timestamp: new Date(log.timestamp),
+  // }));
+
+
+
+const docs = req.body.logs.map((log: any) => ({
+  user_id: req.auth!.user_id,
+  company_id: req.auth!.company_id,
+  session_id: new Types.ObjectId(req.body.session_id),
+
+  timestamp: new Date(log.timestamp),
+  interval_start: new Date(log.interval_start),
+  interval_end: new Date(log.interval_end),
+
+  keyboard_events: log.keyboard_events || 0,
+  mouse_events: log.mouse_events || 0,
+  mouse_distance: log.mouse_distance || 0,
+  activity_score: log.activity_score,
+  idle: log.idle || false,
+
+  active_window: {
+    title: log.active_window.title,
+    app_name: log.active_window.app_name,
+    url: log.active_window.url || "",
+    category: log.active_window.category || "Other"
+  }
+}));
+
+
+
 
   await ActivityLog.insertMany(docs);
 

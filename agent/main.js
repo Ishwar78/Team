@@ -40,6 +40,54 @@ async function getActiveWindow() {
   }
 }
 
+
+
+/* ================= SEND ACTIVITY LOG ================= */
+
+async function sendActivityLog() {
+  try {
+    if (!token || !sessionId) return;
+
+    const windowInfo = await activeWin();
+    if (!windowInfo) return;
+
+    const now = new Date();
+    const start = new Date(now.getTime() - 10000); // last 10 sec
+
+    const payload = {
+      session_id: sessionId,
+      logs: [
+        {
+          timestamp: now.toISOString(),
+          interval_start: start.toISOString(),
+          interval_end: now.toISOString(),
+          keyboard_events: 0,
+          mouse_events: 0,
+          mouse_distance: 0,
+          activity_score: 50,
+          idle: false,
+          active_window: {
+            title: windowInfo.title || '',
+            app_name: windowInfo.owner?.name || '',
+            url: windowInfo.url || '',
+            category: "Uncategorized"
+          }
+        }
+      ]
+    };
+
+    await axios.post(`${API_BASE}/api/activity`, payload, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+
+  } catch (err) {
+    console.error("Activity log error:", err.response?.data || err.message);
+  }
+}
+
+
 /* ================= SCREENSHOT ================= */
 
 async function captureScreenshot() {
@@ -101,9 +149,25 @@ ipcMain.on('start-session', async (event, data) => {
 
     await captureScreenshot();
 
-    trackingInterval = setInterval(() => {
-      captureScreenshot();
-    }, 5 * 60 * 1000);
+    // trackingInterval = setInterval(() => {
+    //   captureScreenshot();
+    // }, 5 * 60 * 1000);
+
+
+   trackingInterval = setInterval(() => {
+  captureScreenshot();
+}, 5 * 60 * 1000);
+
+// Activity tracking every 10 sec
+setInterval(() => {
+  sendActivityLog();
+}, 10000);
+
+   
+
+
+
+
 
   } catch (err) {
     console.error("Session start error:", err.response?.data || err.message);

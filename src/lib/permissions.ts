@@ -100,3 +100,4 @@ export const ROLE_DESCRIPTIONS: Record<AppRole, string> = {
   sub_admin: "View users, reports & screenshots — no billing or settings access",
   user: "Monitored employee — view own dashboard and time logs",
 };
+ 

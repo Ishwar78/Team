@@ -5,16 +5,16 @@ import cors from "cors";
 import { env } from "./config/env";
 import { rateLimiter } from "./middleware/rateLimiter";
 import { errorHandler } from "./middleware/errorHandler";
+
 import { superAdminRoutes } from "./routes/superAdmin.routes";
-
 import { authRoutes } from "./routes/auth.routes";
-
 import { companyRoutes } from "./routes/company.routes";
 import { sessionRoutes } from "./routes/session.routes";
 import { activityRoutes } from "./routes/activity.routes";
 import { screenshotRoutes } from "./routes/screenshot.routes";
 import { adminRoutes } from "./routes/admin.routes";
 import { dashboardRoutes } from "./routes/dashboard.routes";
+import { publicRoutes } from "./routes/public.routes";
 import { paymentRoutes } from "./routes/payment.routes";
 
 const app = express();
@@ -23,7 +23,7 @@ const app = express();
 app.use(helmet());
 
 /* ================= BODY PARSER ================= */
-app.use(express.json({ limit: "1mb" }));
+app.use(express.json({ limit: "5mb" }));
 
 /* ================= CORS ================= */
 const allowedOrigins = env.CORS_ORIGIN
@@ -64,15 +64,18 @@ app.get("/health", (_req, res) => {
   });
 });
 
-import { publicRoutes } from "./routes/public.routes";
-
 /* ================= ROUTES ================= */
+
 app.use("/api/auth", authRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/company", companyRoutes);
 app.use("/api/sessions", sessionRoutes);
-app.use("/api/agent/activity", activityRoutes);
+
+/* 🔥 FIXED ACTIVITY ROUTE */
+app.use("/api/activity", activityRoutes);
+
 app.use("/api/agent/screenshots", screenshotRoutes);
+
 app.use("/api/admin", adminRoutes);
 app.use("/api/super-admin", superAdminRoutes);
 app.use("/api/public", publicRoutes);
@@ -80,7 +83,5 @@ app.use("/api/payment", paymentRoutes);
 
 /* ================= ERROR HANDLER ================= */
 app.use(errorHandler);
-
-console.log("superAdminRoutes type:", typeof superAdminRoutes);
 
 export default app;
