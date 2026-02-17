@@ -82,6 +82,6 @@ const CompanySchema = new Schema<ICompany>(
   }
 );
 
-CompanySchema.index({ domain: 1 }, { unique: true });
+// CompanySchema.index({ domain: 1 }, { unique: true });
 
 export const Company = mongoose.model<ICompany>('Company', CompanySchema);

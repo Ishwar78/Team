@@ -5,7 +5,8 @@ const FormData = require('form-data');
 const activeWin = require('active-win');
 
 let mainWindow;
-let trackingInterval = null;
+let screenshotInterval = null;
+let activityInterval = null;
 let token = null;
 let sessionId = null;
 
@@ -40,60 +41,49 @@ async function getActiveWindow() {
   }
 }
 
-
-
-/* ================= SEND ACTIVITY LOG ================= */
+/* ================= ACTIVITY ================= */
 
 async function sendActivityLog() {
+  if (!token || !sessionId) return;
+
   try {
-    if (!token || !sessionId) return;
-
-    const windowInfo = await activeWin();
-    if (!windowInfo) return;
-
+    const windowInfo = await getActiveWindow();
     const now = new Date();
-    const start = new Date(now.getTime() - 10000); // last 10 sec
+    const start = new Date(now.getTime() - 10000);
 
-    const payload = {
+    await axios.post(`${API_BASE}/api/activity`, {
       session_id: sessionId,
-      logs: [
-        {
-          timestamp: now.toISOString(),
-          interval_start: start.toISOString(),
-          interval_end: now.toISOString(),
-          keyboard_events: 0,
-          mouse_events: 0,
-          mouse_distance: 0,
-          activity_score: 50,
-          idle: false,
-          active_window: {
-            title: windowInfo.title || '',
-            app_name: windowInfo.owner?.name || '',
-            url: windowInfo.url || '',
-            category: "Uncategorized"
-          }
+      logs: [{
+        timestamp: now.toISOString(),
+        interval_start: start.toISOString(),
+        interval_end: now.toISOString(),
+        keyboard_events: 0,
+        mouse_events: 0,
+        mouse_distance: 0,
+        activity_score: 50,
+        idle: false,
+        active_window: {
+          title: windowInfo.title,
+          app_name: windowInfo.app,
+          url: "",
+          category: "Uncategorized"
         }
-      ]
-    };
-
-    await axios.post(`${API_BASE}/api/activity`, payload, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
+      }]
+    }, {
+      headers: { Authorization: `Bearer ${token}` }
     });
 
   } catch (err) {
-    console.error("Activity log error:", err.response?.data || err.message);
+    console.error("Activity error:", err.response?.data || err.message);
   }
 }
-
 
 /* ================= SCREENSHOT ================= */
 
 async function captureScreenshot() {
-  try {
-    if (!token || !sessionId) return;
+  if (!token || !sessionId) return;
 
+  try {
     const sources = await desktopCapturer.getSources({
       types: ['screen'],
       thumbnailSize: { width: 1280, height: 720 }
@@ -125,10 +115,10 @@ async function captureScreenshot() {
       }
     });
 
-    console.log("Screenshot saved to MongoDB");
+    console.log("Screenshot uploaded");
 
   } catch (err) {
-    console.error("Upload error:", err.response?.data || err.message);
+    console.error("Screenshot error:", err.response?.data || err.message);
   }
 }
 
@@ -149,25 +139,8 @@ ipcMain.on('start-session', async (event, data) => {
 
     await captureScreenshot();
 
-    // trackingInterval = setInterval(() => {
-    //   captureScreenshot();
-    // }, 5 * 60 * 1000);
-
-
-   trackingInterval = setInterval(() => {
-  captureScreenshot();
-}, 5 * 60 * 1000);
-
-// Activity tracking every 10 sec
-setInterval(() => {
-  sendActivityLog();
-}, 10000);
-
-   
-
-
-
-
+    screenshotInterval = setInterval(captureScreenshot, 5 * 60 * 1000);
+    activityInterval = setInterval(sendActivityLog, 10000);
 
   } catch (err) {
     console.error("Session start error:", err.response?.data || err.message);
@@ -180,7 +153,8 @@ ipcMain.on('end-session', async () => {
   try {
     if (!sessionId) return;
 
-    clearInterval(trackingInterval);
+    clearInterval(screenshotInterval);
+    clearInterval(activityInterval);
 
     await axios.put(`${API_BASE}/api/sessions/${sessionId}/end`, {}, {
       headers: { Authorization: `Bearer ${token}` }

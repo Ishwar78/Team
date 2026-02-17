@@ -31,19 +31,43 @@ const refreshSchema = z.object({
 
 /* ================= TOKEN GENERATION ================= */
 
-function generateTokens(payload: object) {
-  const accessToken = jwt.sign(payload, env.JWT_PRIVATE_KEY, {
-    algorithm: "HS256",
-    expiresIn: env.JWT_ACCESS_EXPIRY || "1h",
-  });
+// function generateTokens(payload: object) {
+//   const accessToken = jwt.sign(payload, env.JWT_PRIVATE_KEY, {
+//     algorithm: "HS256",
+//     expiresIn: env.JWT_ACCESS_EXPIRY || "7d",
+//   });
 
-  const refreshToken = jwt.sign(payload, env.JWT_PRIVATE_KEY, {
-    algorithm: "HS256",
-    expiresIn: env.JWT_REFRESH_EXPIRY || "7d",
-  });
+//   const refreshToken = jwt.sign(payload, env.JWT_PRIVATE_KEY, {
+//     algorithm: "HS256",
+//     expiresIn: env.JWT_REFRESH_EXPIRY || "30d",
+//   });
+
+//   return { accessToken, refreshToken };
+// }
+
+
+function generateTokens(payload: any) {
+  const accessToken = jwt.sign(
+    { ...payload, type: "access" },
+    env.JWT_PRIVATE_KEY,
+    {
+      algorithm: "HS256",
+      expiresIn: env.JWT_ACCESS_EXPIRY || "7d",
+    }
+  );
+
+  const refreshToken = jwt.sign(
+    { ...payload, type: "refresh" },
+    env.JWT_PRIVATE_KEY,
+    {
+      algorithm: "HS256",
+      expiresIn: env.JWT_REFRESH_EXPIRY || "30d",
+    }
+  );
 
   return { accessToken, refreshToken };
 }
+
 
 /* ================= LOGIN ================= */
 
@@ -132,6 +156,39 @@ authRoutes.post(
 
 /* ================= REFRESH ================= */
 
+// authRoutes.post(
+//   "/refresh",
+//   validate(refreshSchema),
+//   async (req: Request, res: Response, next: NextFunction) => {
+//     try {
+//       const { refresh_token } = req.body;
+
+//       const decoded: any = jwt.verify(
+//         refresh_token,
+//         env.JWT_PRIVATE_KEY,
+//         { algorithms: ["HS256"] }
+//       );
+
+//       const tokens = generateTokens({
+//         user_id: decoded.user_id,
+//         company_id: decoded.company_id,
+//         role: decoded.role,
+//         device_id: decoded.device_id,
+//       });
+
+//       res.json({
+//         token: tokens.accessToken,
+//         refreshToken: tokens.refreshToken,
+//       });
+//     } catch {
+//       next(new AppError("Invalid refresh token", 401));
+//     }
+//   }
+// );
+
+
+
+
 authRoutes.post(
   "/refresh",
   validate(refreshSchema),
@@ -145,10 +202,22 @@ authRoutes.post(
         { algorithms: ["HS256"] }
       );
 
+      if (decoded.type !== "refresh") {
+        throw new AppError("Invalid refresh token", 401);
+      }
+
+      // OPTIONAL: verify user still exists
+      const user = await User.findById(decoded.user_id);
+      if (!user || user.status !== "active") {
+        throw new AppError("User no longer valid", 401);
+      }
+
       const tokens = generateTokens({
-        user_id: decoded.user_id,
-        company_id: decoded.company_id,
-        role: decoded.role,
+        user_id: user._id.toString(),
+        company_id: user.company_id
+          ? user.company_id.toString()
+          : null,
+        role: user.role,
         device_id: decoded.device_id,
       });
 
@@ -156,11 +225,19 @@ authRoutes.post(
         token: tokens.accessToken,
         refreshToken: tokens.refreshToken,
       });
-    } catch {
-      next(new AppError("Invalid refresh token", 401));
+
+    } catch (err) {
+      next(new AppError("Invalid or expired refresh token", 401));
     }
   }
 );
+
+
+
+
+
+
+
 
 /* ================= LOGOUT ================= */
 

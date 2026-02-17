@@ -1,10 +1,15 @@
 {
   "name": "workwise-agent",
   "version": "1.0.0",
+  "description": "WorkWise Desktop Tracking Agent",
   "main": "main.js",
+  "author": "WorkWise",
+  "license": "ISC",
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder"
+    "dev": "electron .",
+    "build": "electron-builder",
+    "dist": "electron-builder --win"
   },
   "dependencies": {
     "active-win": "^8.2.1",
@@ -13,14 +18,21 @@
     "screenshot-desktop": "^1.15.3"
   },
   "devDependencies": {
-    "electron": "^28.0.0",
-    "electron-builder": "^24.6.0"
+    "electron": "^28.2.0",
+    "electron-builder": "^24.13.3"
   },
   "build": {
     "appId": "com.workwise.agent",
-    "productName": "WorkWise Agent",
+    "productName": "WorkWiseAgent",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "**/*"
+    ],
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "artifactName": "WorkWiseAgent-Setup-${version}.exe"
     },
     "mac": {
       "target": "dmg"

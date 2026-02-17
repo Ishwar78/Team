@@ -37,7 +37,7 @@ const ActivityLogSchema = new Schema<IActivityLog>({
     app_name: { type: String, default: '' },
     url: String,
     category: String,
-  },
+  }, 
 }, { timestamps: false });
 
 ActivityLogSchema.index({ company_id: 1, user_id: 1, timestamp: -1 });

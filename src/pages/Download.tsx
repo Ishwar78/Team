@@ -100,16 +100,59 @@ const trackingFeatures = [
   { icon: HardDrive, label: "Offline Queueing", desc: "Data cached locally, synced when online" },
 ];
 
+// const detectOS = (): string => {
+//   const ua = navigator.userAgent.toLowerCase();
+//   if (ua.includes("win")) return "Windows";
+//   if (ua.includes("mac")) return "macOS";
+//   if (ua.includes("linux")) return "Linux";
+//   return "";
+// };
+
+
+
+
 const detectOS = (): string => {
   const ua = navigator.userAgent.toLowerCase();
+
   if (ua.includes("win")) return "Windows";
   if (ua.includes("mac")) return "macOS";
-  if (ua.includes("linux")) return "Linux";
+  if (ua.includes("linux") && !ua.includes("android")) return "Linux";
+
   return "";
 };
 
+
+
+
 const DownloadPage = () => {
   const detectedOS = useMemo(() => detectOS(), []);
+// const handleDownload = (platformName: string, url: string) => {
+//   if (!detectedOS) {
+//     window.location.href = url;
+//     return;
+//   }
+
+//   if (platformName !== detectedOS) {
+//     alert(`You are using ${detectedOS}. Please download the correct installer.`);
+//     return;
+//   }
+
+//  const handleDownload = () => {
+//   window.location.href = "/api/public/download";
+// };
+
+// };
+// const API_BASE = import.meta.env.VITE_API_BASE_URL;
+
+// const handleDownload = () => {
+//   window.location.href = `${API_BASE}/api/public/download`;
+// };
+const handleDownload = () => {
+  window.location.href = "http://localhost:5000/api/public/download";
+};
+
+
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -161,11 +204,26 @@ const DownloadPage = () => {
                   <p className="text-xs text-muted-foreground font-mono">{p.file}</p>
                 </div>
 
-                <Button className="w-full gap-2 mb-4" asChild>
+                {/* <Button className="w-full gap-2 mb-4" asChild>
                   <a href={p.downloadUrl} download={p.file}>
                     <Download size={16} /> Download {p.ext}
                   </a>
-                </Button>
+                </Button> */}
+
+
+                <Button
+  className="w-full gap-2 mb-4"
+ onClick={handleDownload}
+ disabled={detectedOS && p.name !== detectedOS}
+>
+  <Download size={16} />
+  Download {p.ext}
+</Button>
+
+
+
+
+
 
                 <div className="border-t border-border pt-3">
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Installation Steps</p>

@@ -23,9 +23,9 @@ const envSchema = z.object({
 
   /* ================= JWT ================= */
   JWT_PRIVATE_KEY: z.string().min(1),
-  JWT_PUBLIC_KEY: z.string().min(1),
-  JWT_ACCESS_EXPIRY: z.string().default('15m'),
-  JWT_REFRESH_EXPIRY: z.string().default('7d'),
+ JWT_PUBLIC_KEY: z.string().optional(),
+  JWT_ACCESS_EXPIRY: z.string().default('7d'),
+  JWT_REFRESH_EXPIRY: z.string().default('30d'),
 
   /* ================= AWS ================= */
   AWS_REGION: z.string().default('us-east-1'),
