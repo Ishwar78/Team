@@ -86,13 +86,17 @@ const docs = req.body.logs.map((log: any) => ({
 });
 
 /* ================= USAGE AGGREGATION ================= */
+/* ================= USAGE AGGREGATION ================= */
 
 router.get('/usage', async (req, res, next) => {
   try {
     const { userId, period } = req.query;
     const companyId = req.auth!.company_id;
 
+    /* ================= DATE FILTER ================= */
+
     let startDate = new Date();
+
     if (period === 'week') {
       startDate.setDate(startDate.getDate() - 7);
     } else if (period === 'month') {
@@ -111,60 +115,95 @@ router.get('/usage', async (req, res, next) => {
       match.user_id = new Types.ObjectId(userId as string);
     }
 
+    /* ================= APPS AGGREGATION ================= */
+
     const apps = await ActivityLog.aggregate([
       { $match: match },
+
       {
         $group: {
           _id: "$active_window.app_name",
+
           totalSeconds: {
             $sum: {
-              $divide: [{ $subtract: ["$interval_end", "$interval_start"] }, 1000]
+              $divide: [
+                { $subtract: ["$interval_end", "$interval_start"] },
+                1000
+              ]
             }
           },
+
           users: { $addToSet: "$user_id" },
           category: { $first: "$active_window.category" }
         }
       },
+
       {
         $project: {
+          _id: 0,
           name: "$_id",
-          hours: { $divide: ["$totalSeconds", 3600] },
+          seconds: { $round: ["$totalSeconds", 0] },
           users: { $size: "$users" },
           category: { $ifNull: ["$category", "Other"] }
         }
       },
-      { $sort: { hours: -1 } }
+
+      { $sort: { seconds: -1 } }
     ]);
 
+    /* ================= URL AGGREGATION ================= */
+
     const urls = await ActivityLog.aggregate([
-      { $match: { ...match, "active_window.url": { $exists: true, $ne: "" } } },
+      {
+        $match: {
+          ...match,
+          "active_window.url": { $exists: true, $ne: "" }
+        }
+      },
+
       {
         $group: {
           _id: "$active_window.url",
+
           totalSeconds: {
             $sum: {
-              $divide: [{ $subtract: ["$interval_end", "$interval_start"] }, 1000]
+              $divide: [
+                { $subtract: ["$interval_end", "$interval_start"] },
+                1000
+              ]
             }
           },
+
           visits: { $sum: 1 },
           category: { $first: "$active_window.category" }
         }
       },
+
       {
         $project: {
+          _id: 0,
           url: "$_id",
-          hours: { $divide: ["$totalSeconds", 3600] },
-          visits: "$visits",
+          seconds: { $round: ["$totalSeconds", 0] },
+          visits: 1,
           category: { $ifNull: ["$category", "Web"] }
         }
       },
-      { $sort: { hours: -1 } }
+
+      { $sort: { seconds: -1 } }
     ]);
 
-    res.json({ apps, urls });
+    /* ================= RESPONSE ================= */
+
+    res.json({
+      success: true,
+      apps,
+      urls
+    });
+
   } catch (err) {
     next(err);
   }
 });
+
 
 export const activityRoutes = router;

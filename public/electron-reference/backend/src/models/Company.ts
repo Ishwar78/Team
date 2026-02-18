@@ -5,6 +5,8 @@ export interface ICompany extends Document {
   domain: string;
   plan_id?: mongoose.Types.ObjectId;
   country: string;
+  website?: string;
+  industry?: string;
   mrr: number;
 
   settings: {
@@ -44,6 +46,8 @@ const CompanySchema = new Schema<ICompany>(
     plan_id: { type: Schema.Types.ObjectId, ref: 'Plan' },
 
     country: { type: String, default: 'IN' },
+    website: { type: String },
+    industry: { type: String },
 
     mrr: { type: Number, default: 0 },
 

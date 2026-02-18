@@ -176,7 +176,7 @@ const OverviewTab = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatsCard icon={CreditCard} label="Total MRR" value={`$${totalMRR.toLocaleString()}`} trend="+12%" />
+        <StatsCard icon={CreditCard} label="Total MRR" value={`₹${totalMRR.toLocaleString()}`} trend="+12%" />
         <StatsCard icon={Building2} label="Active Companies" value={activeCompanies.toString()} trend="+4%" />
         <StatsCard icon={Users} label="Total Users" value={users.length.toString()} trend="+8%" />
         <StatsCard icon={Activity} label="Active Plans" value={plans.length.toString()} trend="0%" />
@@ -317,7 +317,7 @@ const CompaniesTab = () => {
                     <Progress value={(c.users / c.maxUsers) * 100} className="w-12 h-1.5" />
                   </div>
                 </td>
-                <td className="p-4 text-white">${c.mrr}</td>
+                <td className="p-4 text-white">₹{c.mrr}</td>
                 <td className="p-4"><StatusBadge status={c.status} /></td>
                 <td className="p-4 text-gray-500">{new Date(c.joined).toLocaleDateString()}</td>
                 <td className="p-4 text-right">
@@ -363,7 +363,7 @@ const CompaniesTab = () => {
           <Select value={newPlan} onValueChange={setNewPlan}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
-              {plans.map(p => <SelectItem key={p.id} value={p.name}>{p.name} (${p.price})</SelectItem>)}
+              {plans.map(p => <SelectItem key={p.id} value={p.name}>{p.name} (₹{p.price})</SelectItem>)}
             </SelectContent>
           </Select>
           <DialogFooter>
@@ -380,14 +380,43 @@ const PlansTab = () => {
   const { plans, addPlan, updatePlan, deletePlan } = usePlatform();
   const { toast } = useToast();
   const [createOpen, setCreateOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const [form, setForm] = useState({ name: "", price: 0, users: "", screenshots: "12", retention: "1 Month" });
+  const [editForm, setEditForm] = useState({ id: "", name: "", price: 0, users: "", screenshots: "12", retention: "1 Month" });
 
   const handleCreate = async () => {
     try {
       await addPlan({ ...form, users: Number(form.users) || 5 });
       toast({ title: "Success", description: "Plan created" });
       setCreateOpen(false);
+      setForm({ name: "", price: 0, users: "", screenshots: "12", retention: "1 Month" });
     } catch (e) { toast({ title: "Error", description: "Failed to create plan", variant: "destructive" }); }
+  };
+
+  const handleEditClick = (plan: any) => {
+    setEditForm({
+      id: plan.id,
+      name: plan.name,
+      price: plan.price,
+      users: String(plan.users),
+      screenshots: String(plan.screenshots).replace("/hr", ""),
+      retention: plan.retention
+    });
+    setEditOpen(true);
+  };
+
+  const handleUpdate = async () => {
+    try {
+      await updatePlan(editForm.id, {
+        name: editForm.name,
+        price: Number(editForm.price),
+        users: Number(editForm.users),
+        screenshots: editForm.screenshots,
+        retention: editForm.retention
+      });
+      toast({ title: "Success", description: "Plan updated" });
+      setEditOpen(false);
+    } catch (e) { toast({ title: "Error", description: "Failed to update plan", variant: "destructive" }); }
   };
 
   const handleDelete = async (id: string) => {
@@ -409,7 +438,7 @@ const PlansTab = () => {
             <div className="flex justify-between items-start mb-4">
               <div>
                 <h3 className="text-xl font-bold text-white">{plan.name}</h3>
-                <div className="text-3xl font-bold mt-2">${plan.price}<span className="text-sm font-normal text-gray-500">/mo</span></div>
+                <div className="text-3xl font-bold mt-2">₹{plan.price}<span className="text-sm font-normal text-gray-500">/mo</span></div>
               </div>
               <Badge variant="secondary">{plan.active} active</Badge>
             </div>
@@ -418,7 +447,10 @@ const PlansTab = () => {
               <li>Screenshots: {plan.screenshots}</li>
               <li>Retention: {plan.retention}</li>
             </ul>
-            <Button variant="ghost" className="w-full border border-gray-700 hover:bg-gray-800" onClick={() => handleDelete(plan.id)}>Delete</Button>
+            <div className="grid grid-cols-2 gap-2">
+              <Button variant="outline" className="w-full border-gray-700 hover:bg-gray-800" onClick={() => handleEditClick(plan)}>Edit</Button>
+              <Button variant="ghost" className="w-full border border-gray-700 hover:bg-gray-800 text-red-400 hover:text-red-300" onClick={() => handleDelete(plan.id)}>Delete</Button>
+            </div>
           </div>
         ))}
       </div>
@@ -428,10 +460,41 @@ const PlansTab = () => {
           <DialogHeader><DialogTitle>New Plan</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <Input placeholder="Name" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
-            <Input placeholder="Price" type="number" value={form.price} onChange={e => setForm({ ...form, price: Number(e.target.value) })} />
+            <Input placeholder="Price (₹)" type="number" value={form.price} onChange={e => setForm({ ...form, price: Number(e.target.value) })} />
             <Input placeholder="Max Users" value={form.users} onChange={e => setForm({ ...form, users: e.target.value })} />
+            <Input placeholder="Screenshots per hour" value={form.screenshots} onChange={e => setForm({ ...form, screenshots: e.target.value })} />
+            <Input placeholder="Data Retention" value={form.retention} onChange={e => setForm({ ...form, retention: e.target.value })} />
           </div>
           <DialogFooter><Button onClick={handleCreate}>Create</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Edit Plan</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Plan Name</Label>
+              <Input placeholder="Name" value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label>Price (₹)</Label>
+              <Input placeholder="Price" type="number" value={editForm.price} onChange={e => setEditForm({ ...editForm, price: Number(e.target.value) })} />
+            </div>
+            <div className="space-y-2">
+              <Label>Max Users</Label>
+              <Input placeholder="Max Users" value={editForm.users} onChange={e => setEditForm({ ...editForm, users: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label>Screenshots Per Hour</Label>
+              <Input placeholder="Screenshots" value={editForm.screenshots} onChange={e => setEditForm({ ...editForm, screenshots: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label>Data Retention</Label>
+              <Input placeholder="Retention" value={editForm.retention} onChange={e => setEditForm({ ...editForm, retention: e.target.value })} />
+            </div>
+          </div>
+          <DialogFooter><Button onClick={handleUpdate}>Update Plan</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

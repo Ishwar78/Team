@@ -70,8 +70,8 @@ const Pricing = () => {
                   variants={fadeUp}
                   custom={i}
                   className={`relative rounded-xl p-6 border transition-all duration-300 hover:shadow-glow ${plan.popular
-                      ? "border-primary bg-gradient-card shadow-glow"
-                      : "border-border bg-gradient-card"
+                    ? "border-primary bg-gradient-card shadow-glow"
+                    : "border-border bg-gradient-card"
                     }`}
                 >
                   {plan.popular && (
@@ -82,7 +82,7 @@ const Pricing = () => {
                   <h3 className="font-semibold text-foreground text-lg">{plan.name}</h3>
                   <div className="mt-3 mb-1">
                     <span className="text-3xl font-bold text-foreground">
-                      {plan.price === 0 ? "Free" : `$${plan.price}`}
+                      {plan.price === 0 ? "Free" : `₹${plan.price}`}
                     </span>
                     {plan.price > 0 && <span className="text-sm text-muted-foreground">/month</span>}
                   </div>

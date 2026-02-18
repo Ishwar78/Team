@@ -17,6 +17,7 @@ import { dashboardRoutes } from "./routes/dashboard.routes";
 import { publicRoutes } from "./routes/public.routes";
 import { paymentRoutes } from "./routes/payment.routes";
 import { claimRoutes } from "./routes/claim.routes";
+import { reportRoutes } from "./routes/reports.routes";
 
 const app = express();
 
@@ -82,6 +83,7 @@ app.use("/api/super-admin", superAdminRoutes);
 app.use("/api/public", publicRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/claims", claimRoutes);
+app.use("/api/reports", reportRoutes);
 
 /* ================= ERROR HANDLER ================= */
 app.use(errorHandler);

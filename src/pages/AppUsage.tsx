@@ -25,6 +25,15 @@ const AppUsage = () => {
   const [employees, setEmployees] = useState<{ id: string, name: string }[]>([]);
   const [data, setData] = useState<{ apps: any[], urls: any[] }>({ apps: [], urls: [] });
   const [loading, setLoading] = useState(true);
+const formatDuration = (totalSeconds: number) => {
+  const hrs = Math.floor(totalSeconds / 3600);
+  const mins = Math.floor((totalSeconds % 3600) / 60);
+  const secs = totalSeconds % 60;
+
+  if (hrs > 0) return `${hrs}h ${mins}m ${secs}s`;
+  if (mins > 0) return `${mins}m ${secs}s`;
+  return `${secs}s`;
+};
 
   useEffect(() => {
     if (token) {
@@ -70,8 +79,10 @@ const AppUsage = () => {
   const apps = data.apps || [];
   const urls = data.urls || [];
 
-  const maxAppHours = useMemo(() => Math.max(...apps.map((a: any) => a.hours), 1), [apps]);
-  const maxUrlHours = useMemo(() => Math.max(...urls.map((u: any) => u.hours), 1), [urls]);
+ const maxAppSeconds = useMemo(() => Math.max(...apps.map((a: any) => a.seconds || 0), 1), [apps]);
+
+const maxUrlSeconds = useMemo(() => Math.max(...urls.map((u: any) => u.seconds || 0), 1), [urls]);
+
 
   const periodLabel = period === "today" ? "Today" : period === "week" ? "This Week" : "This Month";
   const userName = employees.find(e => e.id === selectedUser)?.name || "All Users";
@@ -154,7 +165,8 @@ const AppUsage = () => {
                         </span>
                       </div>
                       <div className="text-right">
-                        <span className="text-sm font-semibold text-foreground">{app.hours}h</span>
+                        <span className="text-sm font-semibold text-foreground">{formatDuration(app.seconds)}
+</span>
                         <span className="text-[10px] text-muted-foreground ml-2">
                           {selectedUser === "all" ? `${app.users} users` : ""}
                         </span>
@@ -164,7 +176,8 @@ const AppUsage = () => {
                       <motion.div
                         className="h-full rounded-full bg-primary/60"
                         initial={{ width: 0 }}
-                        animate={{ width: `${(app.hours / maxAppHours) * 100}%` }}
+                        animate={{ width: `${(app.seconds / maxAppSeconds) * 100
+}%` }}
                         transition={{ delay: i * 0.04 + 0.2, duration: 0.5 }}
                       />
                     </div>
@@ -207,7 +220,8 @@ const AppUsage = () => {
                         </span>
                       </div>
                       <div className="text-right">
-                        <span className="text-sm font-semibold text-foreground">{site.hours}h</span>
+                        <span className="text-sm font-semibold text-foreground">{formatDuration(site.seconds)}
+</span>
                         <span className="text-[10px] text-muted-foreground ml-2">{site.visits} visits</span>
                       </div>
                     </div>
@@ -215,7 +229,8 @@ const AppUsage = () => {
                       <motion.div
                         className="h-full rounded-full bg-accent/60"
                         initial={{ width: 0 }}
-                        animate={{ width: `${(site.hours / maxUrlHours) * 100}%` }}
+                        animate={{ width: `${(site.seconds / maxUrlSeconds) * 100
+}%` }}
                         transition={{ delay: i * 0.04 + 0.2, duration: 0.5 }}
                       />
                     </div>
@@ -240,7 +255,8 @@ const AppUsage = () => {
             <div className="flex flex-wrap gap-3">
               {Object.entries(
                 [...apps, ...urls].reduce<Record<string, number>>((acc, item) => {
-                  acc[item.category] = (acc[item.category] || 0) + item.hours;
+                  acc[item.category] = (acc[item.category] || 0) + (item.seconds || 0);
+
                   return acc;
                 }, {})
               )
@@ -252,7 +268,8 @@ const AppUsage = () => {
                   >
                     <span className={`w-2.5 h-2.5 rounded-sm ${categoryColors[cat]?.split(" ")[0] || "bg-muted"}`} />
                     <span className="text-sm text-foreground">{cat}</span>
-                    <span className="text-xs text-muted-foreground font-mono">{hours.toFixed(1)}h</span>
+                    <span className="text-xs text-muted-foreground font-mono">{formatDuration(hours)}
+</span>
                   </div>
                 ))}
             </div>
