@@ -24,6 +24,7 @@ import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend,
 } from "recharts";
+import axios from "axios";
 
 // ─── Sidebar Data ───
 const superAdminMenu = [
@@ -31,7 +32,7 @@ const superAdminMenu = [
   { icon: Building2, label: "Companies", path: "/super-admin/companies" },
   { icon: Users, label: "Users", path: "/super-admin/users" },
   { icon: Package, label: "Plans", path: "/super-admin/plans" },
-  { icon: CreditCard, label: "Subscriptions", path: "/super-admin/subscriptions" },
+  // { icon: CreditCard, label: "Subscriptions", path: "/super-admin/subscriptions" },
   { icon: Activity, label: "Analytics", path: "/super-admin/analytics" },
   { icon: Settings, label: "Settings", path: "/super-admin/settings" },
 ];
@@ -116,8 +117,10 @@ export default function SuperAdmin() {
           {activeTab === "companies" && <CompaniesTab />}
           {activeTab === "users" && <UsersTab />}
           {activeTab === "plans" && <PlansTab />}
+          {activeTab === "analytics" && <AnalyticsTab />}
+          {activeTab === "settings" && <SettingsTab />}
 
-          {(activeTab === "subscriptions" || activeTab === "analytics" || activeTab === "settings") && (
+          {activeTab === "subscriptions" && (
             <div className="flex items-center justify-center h-96 text-gray-500">
               <div className="text-center">
                 <Activity size={48} className="mx-auto mb-4 opacity-50" />
@@ -154,7 +157,7 @@ function StatusBadge({ status }: { status: string }) {
 // ─── Tabs ───
 
 // OVERVIEW
-const OverviewTab = () => {
+function OverviewTab() {
   const { companies, plans, users } = usePlatform();
 
   // Dynamic Stats
@@ -223,7 +226,7 @@ function StatsCard({ icon: Icon, label, value, trend }: any) {
 }
 
 // COMPANIES
-const CompaniesTab = () => {
+function CompaniesTab() {
   const { toast } = useToast();
   const { companies, plans, addCompany, suspendCompany, activateCompany, updateCompany } = usePlatform();
   const [search, setSearch] = useState("");
@@ -376,7 +379,7 @@ const CompaniesTab = () => {
 };
 
 // PLANS
-const PlansTab = () => {
+function PlansTab() {
   const { plans, addPlan, updatePlan, deletePlan } = usePlatform();
   const { toast } = useToast();
   const [createOpen, setCreateOpen] = useState(false);
@@ -503,7 +506,7 @@ const PlansTab = () => {
 
 
 // USERS
-const UsersTab = () => {
+function UsersTab() {
   const { users } = usePlatform();
   const [search, setSearch] = useState("");
 
@@ -544,6 +547,175 @@ const UsersTab = () => {
             ))}
           </tbody>
         </table>
+      </div>
+    </div>
+  );
+};
+
+
+// ANALYTICS
+function AnalyticsTab() {
+  const { token } = useAuth();
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchAnalytics = async () => {
+      try {
+        const res = await axios.get('http://localhost:5000/api/super-admin/analytics', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.data.success) {
+          setData(res.data.data);
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (token) fetchAnalytics();
+  }, [token]);
+
+  if (loading) return <div className="text-gray-400">Loading analytics...</div>;
+  if (!data) return <div className="text-gray-400">No data available</div>;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Platform Analytics</h2>
+        <Badge variant="outline" className="text-cyan-400 border-cyan-500/30 bg-cyan-500/10">Live Data</Badge>
+      </div>
+
+      {/* Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <StatsCard icon={Users} label="Total Users" value={data.totalUsers} />
+        <StatsCard icon={Building2} label="Total Companies" value={data.totalCompanies} />
+        <StatsCard icon={CheckCircle2} label="Active Companies" value={data.activeCompanies} />
+        <StatsCard icon={DollarSign} label="Total MRR" value={`₹${data.totalMRR}`} />
+      </div>
+
+      {/* Charts */}
+      <div className="bg-[#13161C] p-6 rounded-xl border border-gray-800">
+        <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
+          <TrendingUp size={18} className="text-cyan-500" />
+          Growth Trend (Last 6 Months)
+        </h3>
+        <div className="h-80">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data.growthData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#374151" vertical={false} />
+              <XAxis dataKey="name" stroke="#9CA3AF" axisLine={false} tickLine={false} />
+              <YAxis stroke="#9CA3AF" axisLine={false} tickLine={false} />
+              <Tooltip
+                contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }}
+                itemStyle={{ color: '#E5E7EB' }}
+              />
+              <Legend wrapperStyle={{ paddingTop: '20px' }} />
+              <Bar dataKey="companies" fill="#06b6d4" name="New Companies" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="revenue" fill="#10b981" name="Revenue (MRR)" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// SETTINGS
+function SettingsTab() {
+  const { token } = useAuth();
+  const { toast } = useToast();
+  const [settings, setSettings] = useState({
+    allowSignups: true,
+    defaultTrialDays: 14,
+    maintenanceMode: false,
+    supportEmail: ""
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await axios.get('http://localhost:5000/api/super-admin/settings', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.data.success) {
+          setSettings(res.data.data);
+        } else {
+          setError("Failed to fetch settings");
+        }
+      } catch (e: any) {
+        console.error("Failed to fetch settings", e);
+        setError(e.response?.data?.message || e.message || "Unknown error");
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (token) fetchSettings();
+  }, [token]);
+
+  const handleSave = async () => {
+    try {
+      await axios.put('http://localhost:5000/api/super-admin/settings', settings, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast({ title: "Settings Saved", description: "Platform configuration updated." });
+    } catch (e) {
+      toast({ title: "Error", description: "Failed to save settings.", variant: "destructive" });
+    }
+  };
+
+  if (loading) return <div className="p-8 text-white text-xl">Loading settings...</div>;
+  if (error) return <div className="p-8 text-red-500 text-xl">Error: {error}</div>;
+
+  return (
+    <div className="max-w-3xl space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold">Platform Settings</h2>
+        <p className="text-gray-400 text-sm">Manage global configuration for the Workwise Hub.</p>
+      </div>
+
+      <div className="bg-[#13161C] p-8 rounded-xl border border-gray-800 space-y-8">
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <Label className="text-base text-white">Allow New Signups</Label>
+            <p className="text-sm text-muted-foreground">Enable or disable new company registrations.</p>
+          </div>
+          <Switch checked={settings.allowSignups} onCheckedChange={v => setSettings({ ...settings, allowSignups: v })} />
+        </div>
+
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <Label className="text-base text-white">Maintenance Mode</Label>
+            <p className="text-sm text-muted-foreground">Prevent user logins during maintenance (Admins excluded).</p>
+          </div>
+          <Switch checked={settings.maintenanceMode} onCheckedChange={v => setSettings({ ...settings, maintenanceMode: v })} />
+        </div>
+
+        <div className="space-y-2">
+          <Label className="text-white">Default Trial Duration (Days)</Label>
+          <Input
+            type="number"
+            value={settings.defaultTrialDays}
+            onChange={e => setSettings({ ...settings, defaultTrialDays: +e.target.value })}
+            className="bg-gray-900 border-gray-700"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label className="text-white">Support Email</Label>
+          <Input
+            value={settings.supportEmail}
+            onChange={e => setSettings({ ...settings, supportEmail: e.target.value })}
+            className="bg-gray-900 border-gray-700"
+          />
+        </div>
+
+        <div className="pt-4">
+          <Button onClick={handleSave} className="bg-cyan-600 hover:bg-cyan-500 w-full md:w-auto">Save Changes</Button>
+        </div>
       </div>
     </div>
   );

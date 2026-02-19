@@ -23,7 +23,7 @@ interface MenuItem {
 const menuItems: MenuItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard", permission: "view_dashboard" },
   { icon: Users, label: "Team", path: "/dashboard/team", permission: "view_team" },
-  // { icon: Clock, label: "Time Logs", path: "/dashboard/time", permission: "view_time_logs" },
+   { icon: Clock, label: "Time Logs", path: "/dashboard/time", permission: "view_time_logs" },
   { icon: Camera, label: "Screenshots", path: "/dashboard/screenshots", permission: "view_screenshots" },
   { icon: Globe, label: "App & URL Usage", path: "/dashboard/usage", permission: "view_app_usage" },
   // { icon: Activity, label: "Activity Feed", path: "/dashboard/activity", permission: "view_activity" },
@@ -33,6 +33,7 @@ const menuItems: MenuItem[] = [
   // { icon: Bell, label: "Notifications", path: "/dashboard/notifications", permission: "view_notifications" },
   { icon: ShieldBan, label: "Restrictions", path: "/dashboard/restrictions", permission: "configure_monitoring" },
   { icon: Timer, label: "Justifications", path: "/dashboard/justifications", permission: "view_time_logs" },
+  { icon: FileText, label: "Time Claims", path: "/dashboard/time-claim", permission: "manage_team" },
   { icon: CalendarCheck, label: "Attendance", path: "/dashboard/attendance", permission: "view_attendance" },
   // { icon: PlayCircle, label: "Sessions", path: "/dashboard/sessions", permission: "view_sessions" },
   { icon: CreditCard, label: "Billing", path: "/dashboard/billing", permission: "manage_billing" },
@@ -75,25 +76,25 @@ const DashboardSidebar = () => {
       )}
 
       <nav className="flex-1 py-2 overflow-y-auto">
-       {visibleItems.map((item) => {
-  const isActive = location.pathname.startsWith(item.path);
+        {visibleItems.map((item) => {
+          const isActive = location.pathname.startsWith(item.path);
 
-  return (
-    <Link
-      key={item.path}
-      to={item.path}
-      className={cn(
-        "flex items-center gap-3 px-4 py-2.5 mx-2 rounded-lg text-sm transition-colors",
-        isActive
-          ? "bg-primary/10 text-primary"
-          : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-      )}
-    >
-      <item.icon size={18} />
-      {!collapsed && item.label}
-    </Link>
-  );
-})}
+          return (
+            <Link
+              key={item.path}
+              to={item.path}
+              className={cn(
+                "flex items-center gap-3 px-4 py-2.5 mx-2 rounded-lg text-sm transition-colors",
+                isActive
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+              )}
+            >
+              <item.icon size={18} />
+              {!collapsed && item.label}
+            </Link>
+          );
+        })}
 
       </nav>
 

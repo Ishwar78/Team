@@ -209,4 +209,72 @@ router.get('/users', authenticate, requireRole('super_admin'), async (req, res, 
 });
 
 
+/* ================= ANALYTICS ================= */
+
+router.get('/analytics', authenticate, requireRole('super_admin'), async (_req, res, next) => {
+  try {
+    const totalCompanies = await Company.countDocuments();
+    const activeCompanies = await Company.countDocuments({ 'subscription.status': 'active' });
+    const totalUsers = await User.countDocuments();
+
+    const companies = await Company.find().select('mrr created_at').lean();
+    const totalMRR = companies.reduce((sum, c) => sum + (c.mrr || 0), 0);
+
+    // Monthly Growth (Last 6 months)
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
+
+    // Aggregate new companies by month
+    const companiesGrowth = await Company.aggregate([
+      { $match: { created_at: { $gte: sixMonthsAgo } } },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m", date: "$created_at" } },
+          count: { $sum: 1 },
+          mrr: { $sum: "$mrr" }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+
+    // Format for chart
+    const growthData = companiesGrowth.map(g => ({
+      name: g._id,
+      companies: g.count,
+      revenue: g.mrr
+    }));
+
+    res.json({
+      success: true,
+      data: {
+        totalCompanies,
+        activeCompanies,
+        totalUsers,
+        totalMRR,
+        growthData
+      }
+    });
+  } catch (err) { next(err); }
+});
+
+/* ================= SETTINGS ================= */
+
+// Mock settings store (In real app, use a Settings model)
+let platformSettings = {
+  allowSignups: true,
+  defaultTrialDays: 14,
+  maintenanceMode: false,
+  supportEmail: "support@webm.com"
+};
+
+router.get('/settings', authenticate, requireRole('super_admin'), async (_req, res) => {
+  res.json({ success: true, data: platformSettings });
+});
+
+router.put('/settings', authenticate, requireRole('super_admin'), async (req, res) => {
+  platformSettings = { ...platformSettings, ...req.body };
+  res.json({ success: true, data: platformSettings });
+});
+
+
 export const superAdminRoutes = router;

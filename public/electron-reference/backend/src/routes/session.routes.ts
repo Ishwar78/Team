@@ -143,4 +143,26 @@ router.get(
   }
 );
 
+router.get(
+  '/',
+  requireRole('company_admin', 'sub_admin'),
+  async (req, res) => {
+    const { user_id, start_date, end_date } = req.query;
+    const query: any = { company_id: req.auth!.company_id };
+
+    if (user_id) query.user_id = user_id;
+    if (start_date || end_date) {
+      query.start_time = {};
+      if (start_date) query.start_time.$gte = new Date(start_date as string);
+      if (end_date) query.start_time.$lte = new Date(end_date as string);
+    }
+
+    const sessions = await Session.find(query)
+      .populate('user_id', 'name email')
+      .sort({ start_time: -1 });
+
+    res.json({ sessions });
+  }
+);
+
 export const sessionRoutes = router;

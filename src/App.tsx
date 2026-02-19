@@ -92,7 +92,7 @@ const App = () => (
               <Route path="/dashboard/team" element={<CompanyAdminAuthGuard><TeamManagement /></CompanyAdminAuthGuard>} />
               <Route path="/dashboard/attendance" element={<CompanyAdminAuthGuard><Attendance /></CompanyAdminAuthGuard>} />
               <Route path="/dashboard/screenshots" element={<CompanyAdminAuthGuard><Screenshots /></CompanyAdminAuthGuard>} />
-              <Route path="/dashboard/time-logs" element={<CompanyAdminAuthGuard><TimeLogs /></CompanyAdminAuthGuard>} />
+              <Route path="/dashboard/time" element={<CompanyAdminAuthGuard><TimeLogs /></CompanyAdminAuthGuard>} />
               <Route path="/dashboard/usage" element={<CompanyAdminAuthGuard><AppUsage /></CompanyAdminAuthGuard>} />
               <Route path="/dashboard/billing" element={<CompanyAdminAuthGuard><Billing /></CompanyAdminAuthGuard>} />
               <Route path="/dashboard/reports" element={<CompanyAdminAuthGuard><Reports /></CompanyAdminAuthGuard>} />

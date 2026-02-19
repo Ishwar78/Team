@@ -28,24 +28,25 @@ app.use(helmet());
 app.use(express.json({ limit: "5mb" }));
 
 /* ================= CORS ================= */
-const allowedOrigins = env.CORS_ORIGIN
-  ? env.CORS_ORIGIN.split(",").map((o) => o.trim())
-  : [];
+const allowedOrigins = [
+  "http://localhost:8080",
+  "http://localhost:8081",
+  "http://localhost:8082",
+  ...(env.CORS_ORIGIN ? env.CORS_ORIGIN.split(",").map((o) => o.trim()) : [])
+];
 
 app.use(
   cors({
     origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps or curl requests)
       if (!origin) return callback(null, true);
 
-      if (
-        allowedOrigins.length === 0 ||
-        allowedOrigins.includes(origin)
-      ) {
-        return callback(null, true);
+      if (allowedOrigins.indexOf(origin) !== -1 || !env.CORS_ORIGIN) {
+        callback(null, true);
+      } else {
+        console.log("❌ Blocked by CORS:", origin);
+        callback(new Error("Not allowed by CORS"));
       }
-
-      console.log("❌ Blocked by CORS:", origin);
-      callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
   })
