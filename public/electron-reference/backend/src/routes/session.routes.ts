@@ -142,6 +142,37 @@ router.get(
     res.json({ sessions });
   }
 );
+router.get(
+  '/live-status',
+  requireRole('company_admin', 'sub_admin'),
+  async (req, res) => {
+
+    const companyId = req.auth!.company_id;
+
+    const activeSessions = await Session.find({
+      company_id: companyId,
+      status: 'active'
+    }).populate('user_id', 'name email');
+
+    const result = [];
+
+    for (const session of activeSessions) {
+
+      const lastLog = await ActivityLog.findOne({
+        session_id: session._id
+      }).sort({ timestamp: -1 });
+
+      result.push({
+        user: session.user_id,
+        session_id: session._id,
+        idle: lastLog?.idle || false,
+        last_activity: lastLog?.timestamp || null
+      });
+    }
+
+    res.json({ success: true, users: result });
+  }
+);
 
 router.get(
   '/',

@@ -2,6 +2,10 @@ let token = localStorage.getItem("auth_token");
 let deviceId = localStorage.getItem("device_id");
 let isTracking = false;
 
+let lastActivityTime = Date.now();
+let isIdle = false;
+const IDLE_LIMIT = 60000; // 1 min
+
 if (!deviceId) {
   deviceId = crypto.randomUUID();
   localStorage.setItem("device_id", deviceId);
@@ -15,9 +19,7 @@ const timerDisplay = document.getElementById("sessionTimer");
 const liveIndicator = document.getElementById("liveIndicator");
 const dot = document.querySelector(".dot");
 const deviceText = document.getElementById("deviceText");
-const themeToggle = document.getElementById("themeToggle");
 const activityStatus = document.getElementById("activityStatus");
-const screenshotIndicator = document.getElementById("screenshotIndicator");
 
 deviceText.innerText = deviceId;
 
@@ -25,12 +27,14 @@ deviceText.innerText = deviceId;
 
 function setStatus(text, type = "info") {
   statusText.innerText = text;
+
   const colors = {
     info: "#ffffff",
     success: "#28c76f",
     error: "#ea5455",
     active: "#00f5d4"
   };
+
   statusText.style.color = colors[type] || "#ffffff";
 }
 
@@ -42,9 +46,11 @@ let timerInterval = null;
 function startTimer() {
   timerInterval = setInterval(() => {
     seconds++;
+
     const hrs = String(Math.floor(seconds / 3600)).padStart(2, "0");
     const mins = String(Math.floor((seconds % 3600) / 60)).padStart(2, "0");
     const secs = String(seconds % 60).padStart(2, "0");
+
     timerDisplay.innerText = `${hrs}:${mins}:${secs}`;
   }, 1000);
 }
@@ -54,6 +60,36 @@ function stopTimer() {
   seconds = 0;
   timerDisplay.innerText = "00:00:00";
 }
+
+/* ================= IDLE TRACKING ================= */
+
+function markActivity() {
+  lastActivityTime = Date.now();
+
+  if (isIdle) {
+    isIdle = false;
+    activityStatus.classList.remove("idle");
+    activityStatus.innerText = "Active";
+    setStatus("User Active ✔", "success");
+  }
+}
+
+window.addEventListener("mousemove", markActivity);
+window.addEventListener("keydown", markActivity);
+
+setInterval(() => {
+  if (!isTracking) return;
+
+  const now = Date.now();
+  if (now - lastActivityTime > IDLE_LIMIT) {
+    if (!isIdle) {
+      isIdle = true;
+      activityStatus.classList.add("idle");
+      activityStatus.innerText = "Idle";
+      setStatus("Idle detected ⚠", "error");
+    }
+  }
+}, 5000);
 
 /* ================= AUTO LOGIN ================= */
 
@@ -82,33 +118,23 @@ loginBtn.onclick = async () => {
     const res = await fetch("http://localhost:5000/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email,
-        password,
-        device_id: deviceId
-      })
+      body: JSON.stringify({ email, password, device_id: deviceId })
     });
 
     const data = await res.json();
 
-    if (!res.ok) {
-      setStatus("Login failed", "error");
-      loginBtn.disabled = false;
-      loginBtn.innerHTML = "Login";
-      return;
-    }
+    if (!res.ok) throw new Error();
 
     token = data.token;
     localStorage.setItem("auth_token", token);
 
     loginBtn.innerHTML = "✔ Logged In";
     loginBtn.style.background = "#28c76f";
-
     startBtn.disabled = false;
-    setStatus("Login successful ✔", "success");
 
+    setStatus("Login successful ✔", "success");
   } catch {
-    setStatus("Server error", "error");
+    setStatus("Login failed", "error");
     loginBtn.disabled = false;
     loginBtn.innerHTML = "Login";
   }
@@ -125,9 +151,9 @@ startBtn.onclick = () => {
 
   dot.classList.add("active");
   liveIndicator.lastChild.textContent = " Tracking Active";
-  setStatus("Tracking started 🚀", "active");
 
   startTimer();
+  setStatus("Tracking started 🚀", "active");
 };
 
 /* ================= STOP SESSION ================= */
@@ -141,45 +167,28 @@ stopBtn.onclick = () => {
 
   dot.classList.remove("active");
   liveIndicator.lastChild.textContent = " Not Tracking";
-  setStatus("Tracking stopped ⏹", "error");
 
   stopTimer();
+  setStatus("Tracking stopped ⏹", "error");
 };
 
-/* ================= IDLE DETECTION ================= */
+/* ================= SEND ACTIVITY TO MAIN PROCESS ================= */
 
-let idleTimer;
-function resetIdle() {
-  clearTimeout(idleTimer);
-  activityStatus.classList.remove("idle");
-  activityStatus.innerText = "Active";
+setInterval(() => {
+  if (!isTracking || !token) return;
 
-  idleTimer = setTimeout(() => {
-    activityStatus.classList.add("idle");
-    activityStatus.innerText = "Idle";
+  window.agentAPI.sendActivity({
+    status: isIdle ? "idle" : "active",
+    activity_score: isIdle ? 0 : 100
+  });
 
-    if (isTracking) {
-      setStatus("Idle detected ⚠", "error");
-    }
-  }, 60000); // 1 min idle
-}
+}, 15000); // every 15 sec
+setInterval(() => {
+  if (!isTracking) return;
 
-window.onmousemove = resetIdle;
-window.onkeypress = resetIdle;
-resetIdle();
+  window.agentAPI.sendActivityState({
+    idle: isIdle,
+    activity_score: isIdle ? 0 : 100
+  });
 
-/* ================= THEME TOGGLE ================= */
-
-themeToggle.onclick = () => {
-  document.body.classList.toggle("light");
-};
-
-/* ================= SCREENSHOT INDICATOR ================= */
-/* (Call this from preload when screenshot happens) */
-
-window.showScreenshotFlash = () => {
-  screenshotIndicator.classList.add("show");
-  setTimeout(() => {
-    screenshotIndicator.classList.remove("show");
-  }, 2000);
-};
+}, 5000);

@@ -10,6 +10,9 @@ let activityInterval = null;
 let token = null;
 let sessionId = null;
 
+let currentIdle = false;              // 🔥 NEW
+let currentActivityScore = 100;       // 🔥 NEW
+
 const API_BASE = "http://localhost:5000";
 
 function createWindow() {
@@ -26,6 +29,13 @@ function createWindow() {
 }
 
 app.whenReady().then(createWindow);
+
+/* ================= RECEIVE IDLE STATE FROM RENDERER ================= */
+
+ipcMain.on('activity-state', (event, data) => {
+  currentIdle = data.idle;
+  currentActivityScore = data.activity_score;
+});
 
 /* ================= ACTIVE WINDOW ================= */
 
@@ -60,8 +70,11 @@ async function sendActivityLog() {
         keyboard_events: 0,
         mouse_events: 0,
         mouse_distance: 0,
-        activity_score: 50,
-        idle: false,
+
+        // 🔥 UPDATED HERE
+        activity_score: currentActivityScore,
+        idle: currentIdle,
+
         active_window: {
           title: windowInfo.title,
           app_name: windowInfo.app,
@@ -106,7 +119,9 @@ async function captureScreenshot() {
     form.append('resolution_height', 720);
     form.append('window_title', windowInfo.title);
     form.append('app_name', windowInfo.app);
-    form.append('activity_score', 0);
+
+    // 🔥 Now activity score matches idle state
+    form.append('activity_score', currentActivityScore);
 
     await axios.post(`${API_BASE}/api/agent/screenshots`, form, {
       headers: {
@@ -162,6 +177,8 @@ ipcMain.on('end-session', async () => {
 
     sessionId = null;
     token = null;
+    currentIdle = false;
+    currentActivityScore = 100;
 
   } catch (err) {
     console.error("Session end error:", err.response?.data || err.message);
